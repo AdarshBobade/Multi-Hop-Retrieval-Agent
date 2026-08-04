@@ -5,4 +5,3 @@ def retrieve(query , k_closest = 5):
     return results['documents'][0]
 
 
-    
