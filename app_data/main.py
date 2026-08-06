@@ -14,11 +14,11 @@ client = Groq(api_key=groq_api)
 def ask(que : Question):
     retrieved_chunks = set() #Deduplicate chunks retrieved from multiple sub-questions.
     
-    research_plan = planner(que.query) # Returns a JSON of Complexity ,Subquestions , priority
+    research_plan = planner(que.query) # Returns an object of the class ResearchPlan 
 
-    complexity = research_plan["complexity"]
+    complexity = research_plan.complexity
     if complexity == "complex":
-        questions = [task["question"] for task in research_plan["sub_questions"]]
+        questions = [task.question for task in research_plan.sub_questions]
 
     elif complexity == "simple":
         questions = [que.query]
