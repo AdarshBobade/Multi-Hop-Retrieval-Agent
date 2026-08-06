@@ -7,3 +7,8 @@ __pycache__/
 venv/
 .venv/
 env/
+
+#Data
+chroma_db/
+data/
+
