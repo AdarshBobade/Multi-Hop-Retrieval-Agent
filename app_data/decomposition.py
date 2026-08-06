@@ -2,13 +2,25 @@ from groq import Groq
 from dotenv import load_dotenv
 from app_data.config import groq_api
 from app_data.prompts import PLANNER_SYSTEM_PROMPT
-from app_data.models import ResearchPlan
+from app_data.models import ResearchPlan, ResearchTask
+from tenacity import (retry, stop_after_attempt, wait_exponential, before_sleep_log)
+import logging
 import json
 load_dotenv()
+
+logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.INFO)
 
 client = Groq(api_key=groq_api)
 
 # Breaking the user query into sub_questions
+
+@retry(
+    stop=stop_after_attempt(3),
+    wait=wait_exponential(multiplier=1, min=1, max=8),
+    before_sleep=before_sleep_log(logger, logging.WARNING),
+    reraise=True,
+)
 def planner(query:str):
 
  
@@ -29,17 +41,17 @@ def planner(query:str):
         return research_plan
     
     except json.JSONDecodeError :
-        return {
-                    "complexity": "simple",
-                    "goal": query,
-                    "sub_questions": [
-                        {
-                            "question": query,
-                            "purpose": "Fallback to original query due to planner parsing failure."
-                        }
-                    ],
-                    "planner_status": "fallback"
-                }
+        return ResearchPlan(
+                        complexity="simple",
+                        goal=query,
+                        sub_questions=[
+                            ResearchTask(
+                                question=query,
+                                purpose="Fallback due to planner parsing failure.",
+                                priority=0
+                            )
+                        ]
+                    )
     
 
 
