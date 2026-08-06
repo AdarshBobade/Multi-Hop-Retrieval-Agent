@@ -19,9 +19,18 @@ def ask(que : Question):
     
     research_plan = planner(que.query) # Returns a JSON of Complexity ,Subquestions , priority
 
-    for q in research_plan["sub_questions"]:
-        for chunk in retrieve(q["question"]): # Create and retrieve embedding for each subquestion
+
+    complexity = research_plan["complexity"]
+    if complexity == "complex":
+        questions = [task["question"] for task in research_plan["sub_questions"]]
+
+    elif complexity == "simple":
+        questions = [que.query]
+
+    for question in questions:
+        for chunk in retrieve(question):
             retrieved_chunks.add(chunk)
+
 
     context = "\n\n".join(retrieved_chunks)
     prompt = f"Answer using only this context:\n{context}\n\nQuestion: {que.query}"
