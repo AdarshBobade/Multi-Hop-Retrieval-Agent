@@ -2,6 +2,7 @@ from groq import Groq
 from dotenv import load_dotenv
 from app_data.config import groq_api
 from app_data.prompts import PLANNER_SYSTEM_PROMPT
+from app_data.models import ResearchPlan
 import json
 load_dotenv()
 
@@ -23,8 +24,10 @@ def planner(query:str):
     
     
     try :
-        research_plan = json.loads(response.choices[0].message.content)
+        plan_dict = json.loads(response.choices[0].message.content)
+        research_plan = ResearchPlan(**plan_dict) # Validating LLM Response
         return research_plan
+    
     except json.JSONDecodeError :
         return {
                     "complexity": "simple",

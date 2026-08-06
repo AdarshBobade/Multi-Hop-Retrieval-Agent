@@ -3,14 +3,11 @@ from pydantic import BaseModel
 from app_data.retrieval import retrieve
 from app_data.decomposition import planner
 from app_data.config import groq_api
+from app_data.models import Question 
 from groq import Groq
 
 app = FastAPI()
 client = Groq(api_key=groq_api)
-
-# Data Validation using Pydantic ->
-class Question(BaseModel):
-    query :str
 
 
 @app.post("/ask")
@@ -18,7 +15,6 @@ def ask(que : Question):
     retrieved_chunks = set() #Deduplicate chunks retrieved from multiple sub-questions.
     
     research_plan = planner(que.query) # Returns a JSON of Complexity ,Subquestions , priority
-
 
     complexity = research_plan["complexity"]
     if complexity == "complex":
