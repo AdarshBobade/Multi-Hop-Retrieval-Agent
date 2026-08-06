@@ -25,7 +25,7 @@ def planner(query:str):
     
     try :
         plan_dict = json.loads(response.choices[0].message.content)
-        research_plan = ResearchPlan(**plan_dict) # Validating LLM Response
+        research_plan = ResearchPlan.model_validate(plan_dict) # Validating LLM Response
         return research_plan
     
     except json.JSONDecodeError :
