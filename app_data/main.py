@@ -4,6 +4,7 @@ from app_data.retrieval import retrieve
 from app_data.decomposition import planner
 from app_data.config import groq_api
 from app_data.models import Question 
+from app_data.prompts import SYNTHESIS_SYSTEM_PROMPT , SYNTHESIS_USER_PROMPT
 from groq import Groq
 
 app = FastAPI()
@@ -27,12 +28,15 @@ def ask(que : Question):
         for chunk in retrieve(question):
             retrieved_chunks.add(chunk)
 
-
     context = "\n\n".join(retrieved_chunks)
-    prompt = f"Answer using only this context:\n{context}\n\nQuestion: {que.query}"
+    prompt = SYNTHESIS_USER_PROMPT.format(goal=research_plan.goal , 
+                                          context=context ,
+                                          query=que.query)
+
     
     response = client.chat.completions.create(
         model="llama-3.3-70b-versatile",
-        messages=[{"role": "user", "content": prompt}]
+        messages=[{"role": "system", "content": SYNTHESIS_SYSTEM_PROMPT},
+                  {"role": "user", "content": prompt}]
     )
     return {"answer": response.choices[0].message.content, "sources": retrieved_chunks}
