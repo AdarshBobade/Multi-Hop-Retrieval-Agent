@@ -1,5 +1,4 @@
 from fastapi import FastAPI ,HTTPException
-from pydantic import BaseModel
 from app_data.retrieval import retrieve
 from app_data.decomposition import planner
 from app_data.config import groq_api
@@ -21,11 +20,11 @@ def ask(que : Question):
         
         research_plan = planner(que.query) # Returns an object of the class ResearchPlan 
 
-        complexity = research_plan.complexity
+        complexity = research_plan.complexity.lower()
         if complexity == "complex":
             questions = [task.question for task in research_plan.sub_questions]
 
-        elif complexity == "simple":
+        else:
             questions = [que.query]
 
         for question in questions:
@@ -43,7 +42,7 @@ def ask(que : Question):
             messages=[{"role": "system", "content": SYNTHESIS_SYSTEM_PROMPT},
                     {"role": "user", "content": prompt}]
         )
-        return {"answer": response.choices[0].message.content, "sources": retrieved_chunks}
+        return {"answer": response.choices[0].message.content, "sources": list(retrieved_chunks)}
 
     
     except Exception as e:
