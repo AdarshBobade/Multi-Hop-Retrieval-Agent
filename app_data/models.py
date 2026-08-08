@@ -24,3 +24,23 @@ class ResearchPlan(BaseModel):
     goal : str
     sub_questions : list[ResearchTask]
 
+class ResearchState(BaseModel):
+    question : str
+    goal : str
+    current_queries : list[str]
+    retrieved_chunks : set[str]
+    visited_queries : set[str]
+    hop_cnt : int = 0
+    max_hops : int
+    research_trail : list[str]
+    complexity : str
+    confidence : float = 0.0
+    is_finished : bool
+
+class HopDecision(BaseModel):
+    sufficient: bool
+    reasoning: str
+    missing_info : str | None
+    confidence: float
+    next_query: str | None
+
