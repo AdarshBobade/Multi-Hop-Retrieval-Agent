@@ -12,3 +12,5 @@ env/
 chroma_db/
 data/
 
+#logging
+logs/
