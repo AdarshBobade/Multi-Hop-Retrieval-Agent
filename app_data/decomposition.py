@@ -1,29 +1,34 @@
 from groq import Groq
-from dotenv import load_dotenv
 from app_data.config import groq_api
 from app_data.prompts import PLANNER_SYSTEM_PROMPT
 from app_data.models import ResearchPlan, ResearchTask
 from tenacity import (retry, stop_after_attempt, wait_exponential, before_sleep_log)
 import logging
+from app_data.logging_config import timer
 import json
-load_dotenv()
+
 
 logger = logging.getLogger(__name__)
-logging.basicConfig(level=logging.INFO)
+
 
 client = Groq(api_key=groq_api)
 
 # Breaking the user query into sub_questions
 
+@timer
 @retry(
     stop=stop_after_attempt(3),
     wait=wait_exponential(multiplier=1, min=1, max=8),
     before_sleep=before_sleep_log(logger, logging.WARNING),
     reraise=True,
 )
-def planner(query:str):
+def planner(query:str) -> ResearchPlan:
 
- 
+    #logging the function INFO
+    logger.info("Planner started.")
+    logger.info(f"Question: {query}")
+
+    logger.info(f"Query Length: {len(query.split())} words")
     response = client.chat.completions.create(
                     model="llama-3.3-70b-versatile",
                     messages=[
@@ -32,15 +37,23 @@ def planner(query:str):
                     )
 
     # LLM Returns a string containing JSON :
-    # SO first Parsing JSON :
-    
-    
+    # SO first converting to JSON :
     try :
+
+        logger.debug(response.choices[0].message.content)
         plan_dict = json.loads(response.choices[0].message.content)
         research_plan = ResearchPlan.model_validate(plan_dict) # Validating LLM Response
+
+        logger.info(f"Planner classified query as '{research_plan.complexity}'.")
+        logger.info(f"Research Goal: {research_plan.goal}")
+        logger.info(f"Generated {len(research_plan.sub_questions)} sub-questions.")
+
+        logger.info("Planner completed successfully.")
         return research_plan
-    
+        
+
     except json.JSONDecodeError :
+        logger.error("Planner response parsing failed.",exc_info=True)
         return ResearchPlan(
                         complexity="simple",
                         goal=query,
