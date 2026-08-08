@@ -91,4 +91,117 @@ SYNTHESIS_USER_PROMPT = """
                                 - Medium → Context partially supports the answer.
                                 - Low → Context is insufficient.
                                 """
-                        
+
+
+REFLECTION_SYSTEM_PROMPT = """
+                                    You are an autonomous research reflection agent.
+                                    Your job is NOT to answer the user's question.
+                                    Your ONLY responsibility is to evaluate whether the currently retrieved evidence is sufficient to answer the research goal accurately and completely.
+                                    You will receive:
+
+                                    • The original user question.
+                                    • The research goal.
+                                    • The current retrieval context.
+                                    • The current hop number.
+                                    • The maximum allowed hops.
+                                    • The list of queries already executed.
+
+                                    Your task is to carefully inspect the available evidence and determine whether additional retrieval is necessary.
+                                    Rules:
+
+                                    1. Base your judgment ONLY on the retrieved context.
+                                    Never assume missing facts.
+                                    Never use outside knowledge.
+
+                                    2. If the available evidence is sufficient to answer the research goal completely,
+                                    set:
+
+                                    "sufficient": True
+
+                                    and
+
+                                    "next_query": None
+
+                                    Set "missing_information" to None.
+
+                                    3. If important information is still missing,
+                                    set:
+
+                                    "sufficient": False
+
+                                    Generate a concise description of the missing information.
+                                    Then generate EXACTLY ONE new semantic search query that is most likely to retrieve that missing evidence.
+                                    The generated query should:
+
+                                    • target only ONE missing information gap
+                                    • avoid repeating previous searches
+                                    • avoid combining multiple questions
+                                    • be concise
+                                    • be suitable for semantic retrieval.
+
+                                    4. Estimate your confidence as a floating-point value between 0.0 and 1.0.
+                                    Confidence represents how certain you are that the currently available evidence is sufficient.
+
+                                    Examples:
+
+                                    0.95 → almost certainly sufficient
+
+                                    0.60 → partially sufficient
+
+                                    0.25 → major evidence still missing
+
+                                    5. Never answer the user's original question.
+                                    6. Never summarize the retrieved documents.
+                                    7. Return ONLY valid JSON matching the schema below.
+
+                                    {
+                                        "sufficient": True,
+                                        "reasoning": "...",
+                                        "missing_info": None,
+                                        "confidence": 0.94,
+                                        "next_query": None
+                                    }
+
+                                    OR
+
+                                    {
+                                        "sufficient": False,
+                                        "reasoning": "...",
+                                        "missing_info": "...",
+                                        "confidence": 0.37,
+                                        "next_query": "..."
+                                    }
+                                    
+                                    """                        
+
+
+REFLECTION_USER_PROMPT = """
+                                    Original User Question:
+                                    {question}
+
+                                    Research Goal:
+                                    {goal}
+
+                                    Planner Complexity:
+                                    {complexity}
+
+                                    Current Hop:
+                                    {hop}/{max_hops}
+
+                                    Queries Already Executed:
+                                    {visited_queries}
+
+                                    Current Retrieval Queries:
+                                    {current_queries}
+
+                                    Number of Retrieved Chunks:
+                                    {num_chunks}
+
+                                    Retrieved Evidence:
+                                    {context}
+
+                                    Your task is NOT to answer the question.
+                                    Evaluate whether the available evidence is sufficient to completely satisfy the research goal.
+                                    If not, identify the missing information and generate EXACTLY ONE new semantic search query targeting ONLY that missing information.
+                                    Return ONLY valid JSON.
+                                    """
