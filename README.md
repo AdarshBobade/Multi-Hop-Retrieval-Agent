@@ -15,3 +15,12 @@ uvicorn app_data.main:app --reload --port 8000
 API:
 - `POST /ask` with `{ "query": "..." }`
 - `POST /upload` with multipart form field `file` (PDF)
+## Frontend
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Opens at http://localhost:5176 and proxies `/ask` and `/upload` to the FastAPI server on port 8000.
