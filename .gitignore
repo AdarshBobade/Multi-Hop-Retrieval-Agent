@@ -14,3 +14,7 @@ data/
 
 #logging
 logs/
+
+#frontend
+frontend/node_modules/
+frontend/dist/
