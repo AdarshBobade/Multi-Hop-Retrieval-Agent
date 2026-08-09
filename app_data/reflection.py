@@ -71,18 +71,17 @@ def reflect(state : ResearchState) -> HopDecision:
         return decision
 
     # If reflection fails completely ->
-    except Exception as e:
-        # logger.warning("Reflection failed due to an internal error. The research loop was terminated safely to prevent unnecessary retrieval iterations.")
-        # logger.error("Reflection failed due to parsing/API error. Terminating research to avoid unnecessary retrieval loops.",
-        #              exc_info=True)
-        # return HopDecision(
-        #                     sufficient=True,
-        #                     reasoning="Reflection failed. Stopping to avoid infinite loop.",
-        #                     missing_information=None,
-        #                     confidence=0.0,
-        #                     next_query=None
-        #                     )
-        print(repr(e))
-        raise
+    except Exception :
+        logger.warning("Reflection failed due to an internal error. The research loop was terminated safely to prevent unnecessary retrieval iterations.")
+        logger.error("Reflection failed due to parsing/API error. Terminating research to avoid unnecessary retrieval loops.",
+                     exc_info=True)
+        return HopDecision(
+                            sufficient=True,
+                            reasoning="Reflection failed. Stopping to avoid infinite loop.",
+                            missing_information=None,
+                            confidence=0.0,
+                            next_query=None
+                            )
+        
 
 
