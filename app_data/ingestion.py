@@ -9,7 +9,7 @@ embed_fn = SentenceTransformerEmbeddingFunction(
 
 collection = client.get_or_create_collection('docs' , embedding_function=embed_fn)
 
-def chunk_text(text , chunk_size = 500):
+def chunk_text(text , chunk_size = 75):
     words = text.split()
     overlap = 50    # Overlapping Chunking 
     return [" ".join(words[i:i + chunk_size]) for i in range(0 , len(words) ,chunk_size - overlap)]

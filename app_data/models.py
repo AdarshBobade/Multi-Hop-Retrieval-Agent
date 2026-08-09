@@ -1,4 +1,6 @@
 from pydantic import BaseModel ,Field ,field_validator
+from typing import Any
+
 
 # Data Validation using Pydantic ->
 class Question(BaseModel):
@@ -24,23 +26,28 @@ class ResearchPlan(BaseModel):
     goal : str
     sub_questions : list[ResearchTask]
 
+
 class ResearchState(BaseModel):
     question : str
-    goal : str
+    plan : ResearchPlan 
     current_queries : list[str]
     retrieved_chunks : set[str]
     visited_queries : set[str]
     hop_cnt : int = 0
-    max_hops : int
-    research_trail : list[str]
+    max_hops : int = 3
+    research_trail : list[dict[str , Any]]
     complexity : str
     confidence : float = 0.0
-    is_finished : bool
+    llm_calls : int = 0
+    retrieval_calls : int = 0
+    
 
 class HopDecision(BaseModel):
     sufficient: bool
     reasoning: str
-    missing_info : str | None
+    missing_info : str | None = None
     confidence: float
-    next_query: str | None
+    next_query: str | None = None
 
+
+ 

@@ -116,18 +116,18 @@ REFLECTION_SYSTEM_PROMPT = """
                                     2. If the available evidence is sufficient to answer the research goal completely,
                                     set:
 
-                                    "sufficient": True
+                                    "sufficient": true
 
                                     and
 
-                                    "next_query": None
+                                    "next_query": null
 
-                                    Set "missing_information" to None.
+                                    Set "missing_information" to null.
 
                                     3. If important information is still missing,
                                     set:
 
-                                    "sufficient": False
+                                    "sufficient": false
 
                                     Generate a concise description of the missing information.
                                     Then generate EXACTLY ONE new semantic search query that is most likely to retrieve that missing evidence.
@@ -155,17 +155,17 @@ REFLECTION_SYSTEM_PROMPT = """
                                     7. Return ONLY valid JSON matching the schema below.
 
                                     {
-                                        "sufficient": True,
+                                        "sufficient": true,
                                         "reasoning": "...",
-                                        "missing_info": None,
+                                        "missing_info": null,
                                         "confidence": 0.94,
-                                        "next_query": None
+                                        "next_query": null
                                     }
 
                                     OR
 
                                     {
-                                        "sufficient": False,
+                                        "sufficient": false,
                                         "reasoning": "...",
                                         "missing_info": "...",
                                         "confidence": 0.37,
@@ -179,8 +179,7 @@ REFLECTION_USER_PROMPT = """
                                     Original User Question:
                                     {question}
 
-                                    Research Goal:
-                                    {goal}
+                                    
 
                                     Planner Complexity:
                                     {complexity}
