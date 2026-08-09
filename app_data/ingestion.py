@@ -12,6 +12,12 @@ embed_fn = SentenceTransformerEmbeddingFunction(
 
 collection = client.get_or_create_collection("docs", embedding_function=embed_fn)
 
+UPLOAD_DIR = Path("data/uploads")
+UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+
+ALLOWED_EXTENSIONS = {".pdf"}
+MAX_UPLOAD_BYTES = 25 * 1024 * 1024  # 25 MB
+
 
 def chunk_text(text, chunk_size=75):
     words = text.split()
@@ -47,6 +53,33 @@ def ingest_pdf(path: str | Path) -> dict:
         "chunks": len(chunks),
         "pages": len(reader.pages),
     }
+
+
+def save_upload(filename: str, content: bytes) -> Path:
+    if not filename:
+        raise ValueError("Filename is required.")
+
+    suffix = Path(filename).suffix.lower()
+    if suffix not in ALLOWED_EXTENSIONS:
+        raise ValueError("Only PDF files are supported.")
+
+    if not content:
+        raise ValueError("Uploaded file is empty.")
+
+    if len(content) > MAX_UPLOAD_BYTES:
+        raise ValueError(f"File exceeds the {MAX_UPLOAD_BYTES // (1024 * 1024)} MB limit.")
+
+    safe_stem = Path(filename).stem.replace(" ", "_")[:80] or "document"
+    dest = UPLOAD_DIR / f"{safe_stem}_{uuid.uuid4().hex[:8]}{suffix}"
+    dest.write_bytes(content)
+    return dest
+
+
+def ingest_upload(filename: str, content: bytes) -> dict:
+    path = save_upload(filename, content)
+    result = ingest_pdf(path)
+    result["path"] = str(path)
+    return result
 
 
 if __name__ == "__main__":
