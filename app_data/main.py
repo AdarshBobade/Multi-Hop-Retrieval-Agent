@@ -3,7 +3,7 @@ from app_data.decomposition import planner
 from app_data.models import Question 
 from app_data.agentic_loop import run_agent_loop
 from app_data.synthesis import synthesize_answer
-from groq import Groq
+import asyncio
 import logging
 
 app = FastAPI()
@@ -11,13 +11,13 @@ app = FastAPI()
 logger = logging.getLogger(__name__)
 
 @app.post("/ask")
-def ask(que : Question):
+async def ask(que : Question):
 
     try:
         
         research_plan = planner(que.query) # Returns an object of the class ResearchPlan 
 
-        state = run_agent_loop(research_plan, que.query)
+        state = await run_agent_loop(research_plan, que.query)
        
         response = synthesize_answer(state , que)
 
