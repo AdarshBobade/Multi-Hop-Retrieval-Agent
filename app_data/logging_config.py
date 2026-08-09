@@ -1,8 +1,9 @@
 import logging
 import time
 from functools import wraps
+from pathlib import Path
 
-
+Path("logs").mkdir(parents=True, exist_ok=True)
 
 logging.basicConfig(
     level=logging.INFO,

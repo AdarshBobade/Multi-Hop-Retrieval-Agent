@@ -1,11 +1,11 @@
 import asyncio
 import logging
 
-from fastapi import FastAPI, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
+from fastapi import FastAPI, File, HTTPException, UploadFile
 
 from app_data.agentic_loop import run_agent_loop
 from app_data.decomposition import planner
+from app_data.ingestion import ingest_upload
 from app_data.models import Question
 from app_data.synthesis import synthesize_answer
 
@@ -49,4 +49,20 @@ async def ask(que: Question):
 
     except Exception as e:
         logger.exception("Error while processing /ask request")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/upload")
+async def upload(file: UploadFile = File(...)):
+    try:
+        content = await file.read()
+        result = await asyncio.to_thread(ingest_upload, file.filename or "", content)
+        return {
+            "message": "File uploaded and ingested successfully.",
+            **result,
+        }
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.exception("Error while processing /upload request")
         raise HTTPException(status_code=500, detail=str(e))
