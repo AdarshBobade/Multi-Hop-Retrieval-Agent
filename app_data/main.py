@@ -2,12 +2,14 @@ import asyncio
 import logging
 
 from fastapi import FastAPI, File, HTTPException, UploadFile
+from fastapi.middleware.cors import CORSMiddleware
+
 
 from app_data.agentic_loop import run_agent_loop
 from app_data.decomposition import planner
 from app_data.ingestion import ingest_upload
 from app_data.models import Question
-from app_data.synthesis import synthesize_answer
+from app_data.synthesis import synthesize_answer , check_groundedness
 
 app = FastAPI()
 
@@ -37,13 +39,17 @@ async def ask(que: Question):
         research_plan = planner(que.query)  # Returns an object of the class ResearchPlan
 
         state = await run_agent_loop(research_plan, que.query)
+       
+        response = synthesize_answer(state , que)
+        answer_text = response.choices[0].message.content
 
-        response = synthesize_answer(state, que)
+        groundedness = check_groundedness(state, que, answer_text)
 
         return {
-            "answer": response.choices[0].message.content,
+            "answer": answer_text,
             "trail": state.research_trail,
             "confidence": state.confidence,
+                "Groundedness": groundedness.model_dump() ,
             "sources": list(state.retrieved_chunks),
         }
 

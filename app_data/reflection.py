@@ -78,7 +78,7 @@ def reflect(state : ResearchState) -> HopDecision:
         return HopDecision(
                             sufficient=True,
                             reasoning="Reflection failed. Stopping to avoid infinite loop.",
-                            missing_information=None,
+                            missing_info=None,
                             confidence=0.0,
                             next_query=None
                             )

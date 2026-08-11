@@ -204,3 +204,29 @@ REFLECTION_USER_PROMPT = """
                                     If not, identify the missing information and generate EXACTLY ONE new semantic search query targeting ONLY that missing information.
                                     Return ONLY valid JSON.
                                     """
+
+
+GROUNDEDNESS_SYSTEM_PROMPT = """You are a strict fact-checker. You will be given a generated answer and the source context it was supposed to be based on. Your job is to verify whether every claim in the answer is actually supported by the context.
+
+                                Respond with ONLY valid JSON, no other text, matching this structure:
+                                {
+                                "score": <float 0.0 to 1.0, where 1.0 means fully grounded>,
+                                "verdict": "<fully_supported | partially_supported | not_supported>",
+                                "unsupported_claims": [<list of specific claims in the answer NOT backed by the context, empty list if none>],
+                                "reasoning": "<brief explanation of your verdict>"
+                                }
+
+                                Be strict: if the answer adds specifics, numbers, or facts not present in the context, flag them. If the answer stays within what the context actually supports, score it highly."""
+
+GROUNDEDNESS_USER_PROMPT = """
+                            Original question: 
+                            {question}
+
+                            Generated answer:
+                            {answer}
+
+                            Source context the answer was supposed to be based on:
+                            {context}
+
+                            Evaluate whether the generated answer is fully supported by the source context.
+                            """

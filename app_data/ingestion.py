@@ -19,7 +19,7 @@ ALLOWED_EXTENSIONS = {".pdf"}
 MAX_UPLOAD_BYTES = 25 * 1024 * 1024  # 25 MB
 
 
-def chunk_text(text, chunk_size=75):
+def chunk_text(text, chunk_size=200):
     words = text.split()
     overlap = 50  # Overlapping Chunking
     return [

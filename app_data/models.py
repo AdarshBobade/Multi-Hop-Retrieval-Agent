@@ -49,5 +49,11 @@ class HopDecision(BaseModel):
     confidence: float
     next_query: str | None = None
 
+class GroundednessCheck(BaseModel):
+    score: float = Field(ge=0.0, le=1.0)
+    verdict: str  # "fully_supported" | "partially_supported" | "not_supported"
+    unsupported_claims: list[str] = []
+    reasoning: str
+
 
  
