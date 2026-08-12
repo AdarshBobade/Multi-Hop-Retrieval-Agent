@@ -1,5 +1,5 @@
 from pydantic import BaseModel ,Field ,field_validator
-from typing import Any
+from typing import Any , Literal
 
 
 # Data Validation using Pydantic ->
@@ -20,11 +20,15 @@ class ResearchTask(BaseModel):
     question : str
     purpose :str
     priority : int
+    source: Literal["local", "web", "hybrid"]
+    search_depth: Literal["basic", "advanced"] = "basic"
+    topic: Literal["general", "news"] = "general"
 
 class ResearchPlan(BaseModel):
     complexity : str
     goal : str
     sub_questions : list[ResearchTask]
+    retrieval_mode: Literal["local", "web", "hybrid"]
 
 
 class ResearchState(BaseModel):

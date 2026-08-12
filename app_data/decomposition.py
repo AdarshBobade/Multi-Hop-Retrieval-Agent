@@ -1,6 +1,6 @@
 from groq import Groq
 from app_data.config import groq_api
-from app_data.prompts import PLANNER_SYSTEM_PROMPT
+from app_data.prompts import PLANNER_SYSTEM_PROMPT , PLANNER_USER_PROMPT
 from app_data.models import ResearchPlan, ResearchTask
 from tenacity import (retry, stop_after_attempt, wait_exponential, before_sleep_log)
 import logging
@@ -29,11 +29,13 @@ def planner(query:str) -> ResearchPlan:
     logger.info(f"Question: {query}")
 
     logger.info(f"Query Length: {len(query.split())} words")
+
+    user_prompt = PLANNER_USER_PROMPT.format(query=query)
     response = client.chat.completions.create(
                     model="llama-3.3-70b-versatile",
                     messages=[
                         {"role": "system", "content": PLANNER_SYSTEM_PROMPT},
-                        {"role": "user" , "content" : query}]
+                        {"role": "user" , "content" : user_prompt}]
                     )
 
     # LLM Returns a string containing JSON :

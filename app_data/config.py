@@ -15,4 +15,5 @@ else:
     load_dotenv(find_dotenv(usecwd=True))
 
 groq_api = os.getenv("GROQ_API_KEY")
-hf_token = os.getenv("HF_TOKEN")
+hf_token = os.getenv("HF_TOKEN")
+tavily_api = os.getenv("TAVILY_API_KEY")
