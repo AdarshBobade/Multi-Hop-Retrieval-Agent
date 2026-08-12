@@ -49,7 +49,7 @@ async def ask(que: Question):
             "answer": answer_text,
             "trail": state.research_trail,
             "confidence": state.confidence,
-                "groundedness": groundedness.model_dump() ,
+            "groundedness": groundedness.model_dump(),
             "sources": list(state.retrieved_chunks),
         }
 

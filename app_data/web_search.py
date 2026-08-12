@@ -1,25 +1,36 @@
 from app_data.config import tavily_api
-from app_data.models import Question
+from app_data.models import Evidence
 from tavily import TavilyClient
+import logging
+
+logger = logging.getLogger(__name__)
 
 client = TavilyClient(api_key=tavily_api)
 
-def web_search(query:Question,
+class WebSearchError(Exception):
+    pass
+
+def web_search(query:str,
                topic: str = "general",
-               search_depth: str = "basic"):
-    
-    web_response = client.search(
-                                query=query,
-                                search_depth=search_depth,
-                                topic=topic,
-                                max_results=5,
-                                include_answer=False,
-                                include_raw_content=(search_depth == "advanced")
-                            )
+               search_depth: str = "basic") -> list[Evidence] :
+    try:
+        web_response = client.search(
+                                    query=query,
+                                    search_depth=search_depth,
+                                    topic=topic,
+                                    max_results=5,
+                                    include_answer=False,
+                                    include_raw_content=(search_depth == "advanced")
+                                )
+
+    except Exception as e:
+        logger.exception("Web search failed for query: %s", query)
+        raise 
 
     results = []
 
     for result in web_response.get("results", []):
+
         if result.get("score", 0) < 0.4:
             continue
 
@@ -27,5 +38,31 @@ def web_search(query:Question,
             "title": result.get("title"),
             "url": result.get("url"),
             "content": result.get("content"),
-            "score": result.get("score", 0.0)
+            "score": result.get("score", 0.0),
+            "published_date": result.get("published_date")
         })
+
+    evidence = [ tavily_to_evidence(result ,query) for result in results]
+    return evidence
+
+def tavily_to_evidence(result: dict, query: str) -> Evidence:
+    return Evidence(
+        content=result.get("content", ""),
+        source_type="web",
+        source=result.get("url", ""),
+        title=result.get("title"),
+        url=result.get("url"),
+        relevance_score=result.get("score"),
+        published_date=result.get("published_date"),
+        retrieval_query=query
+    )
+
+
+results = web_search("latest developments in retrieval augmented generation")
+
+for result in results:
+    print(result.title)
+    print(result.url)
+    print(result.relevance_score)
+    print(result.content[:300])
+    print("---")

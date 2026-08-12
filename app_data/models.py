@@ -30,11 +30,25 @@ class ResearchPlan(BaseModel):
     sub_questions : list[ResearchTask]
     retrieval_mode: Literal["local", "web", "hybrid"]
 
+class Evidence(BaseModel):
+    content: str
+    source_type: Literal["document", "web"]
+    source: str
+    title: str | None = None
+    url: str | None = None
+    doc_id: str | None = None
+    page: int | None = None
+    relevance_score: float | None = None
+    distance: float | None = None
+    published_date: str | None = None
+    retrieval_query: str | None = None
+
 
 class ResearchState(BaseModel):
     question : str
     plan : ResearchPlan 
     current_queries : list[str]
+    evidence : list[Evidence]
     retrieved_chunks : set[str]
     visited_queries : set[str]
     hop_cnt : int = 0
@@ -44,6 +58,7 @@ class ResearchState(BaseModel):
     confidence : float = 0.0
     llm_calls : int = 0
     retrieval_calls : int = 0
+    web_search_calls : int = 0
     
 
 class HopDecision(BaseModel):
@@ -58,6 +73,7 @@ class GroundednessCheck(BaseModel):
     verdict: str  # "fully_supported" | "partially_supported" | "not_supported"
     unsupported_claims: list[str] = []
     reasoning: str
+
 
 
  
