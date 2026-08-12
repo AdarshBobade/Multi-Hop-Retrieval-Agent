@@ -50,7 +50,7 @@ async def ask(que: Question):
             "trail": state.research_trail,
             "confidence": state.confidence,
             "groundedness": groundedness.model_dump(),
-            "sources": list(state.retrieved_chunks),
+            "sources": list(state.evidence),
         }
 
     except Exception as e:

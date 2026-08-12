@@ -59,11 +59,15 @@ def planner(query:str) -> ResearchPlan:
         return ResearchPlan(
                         complexity="simple",
                         goal=query,
+                        retrieval_mode="local",
                         sub_questions=[
                             ResearchTask(
                                 question=query,
                                 purpose="Fallback due to planner parsing failure.",
-                                priority=0
+                                priority=1,
+                                source="local",
+                                search_depth="basic",
+                                topic="general"
                             )
                         ]
                     )

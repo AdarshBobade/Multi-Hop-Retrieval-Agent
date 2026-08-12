@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 def check_groundedness(state, original_query, answer_text: str) -> GroundednessCheck:
     logger.info("Groundedness check started.")
 
-    context = "\n\n".join(state.retrieved_chunks)
+    context = "\n\n".join(state.evidence)
     prompt = GROUNDEDNESS_USER_PROMPT.format(
         question=original_query.query,
         answer=answer_text,
@@ -55,7 +55,7 @@ def check_groundedness(state, original_query, answer_text: str) -> GroundednessC
 def synthesize_answer(state , original_query):
     logger.info("Synthesis started.")
 
-    context = "\n\n".join(state.retrieved_chunks)
+    context = "\n\n".join(state.evidence)
 
     logger.info(f"Synthesizing answer, context size: {len(context.split())} words")
 

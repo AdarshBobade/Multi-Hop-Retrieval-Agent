@@ -7,8 +7,6 @@ logger = logging.getLogger(__name__)
 
 client = TavilyClient(api_key=tavily_api)
 
-class WebSearchError(Exception):
-    pass
 
 def web_search(query:str,
                topic: str = "general",

@@ -47,13 +47,12 @@ class Evidence(BaseModel):
 class ResearchState(BaseModel):
     question : str
     plan : ResearchPlan 
-    current_queries : list[str]
-    evidence : list[Evidence] = []
-    retrieved_chunks : set[str]
+    current_queries : list[str] = Field(default_factory=list)
+    evidence : list[Evidence] = Field(default_factory=list)
     visited_queries : set[str]
     hop_cnt : int = 0
     max_hops : int = 3
-    research_trail : list[dict[str , Any]]
+    research_trail : list[dict[str , Any]] = Field(default_factory=list)
     complexity : str
     confidence : float = 0.0
     llm_calls : int = 0
@@ -67,6 +66,7 @@ class HopDecision(BaseModel):
     missing_info : str | None = None
     confidence: float
     next_query: str | None = None
+    source: Literal["local", "web", "hybrid"] | None = None
 
 class GroundednessCheck(BaseModel):
     score: float = Field(ge=0.0, le=1.0)

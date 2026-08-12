@@ -76,6 +76,18 @@ PLANNER_SYSTEM_PROMPT = """ You are an expert Research Planning Agent for an aut
                             Choose HYBRID when information from BOTH sources materially contributes to answering
                             the question.
 
+                            For every research task, you MUST determine the most appropriate information source.
+                            The source must be exactly one of:
+                            "local" → retrieve information only from the user's uploaded documents.
+                            "web" → retrieve information only from external web sources.
+                            "hybrid" → retrieve information from both the user's uploaded documents and external web sources.
+
+                            Choose "local" when the task can be answered from the uploaded documents.
+                            Choose "web" when the task requires current, external, recent, or broader information that is not expected to be contained in the uploaded documents.
+                            Choose "hybrid" when the task requires combining information from the uploaded documents with external web information.
+
+                            Do NOT choose "web" or "hybrid" merely because external information exists. Use the minimum retrieval sources necessary to answer the task reliably.
+                            The source selected for each research task may be different from the overall retrieval_mode of the research plan.
                             Determine the overall retrieval_mode for the research plan.
 
                             For every research task, also determine its preferred source:
@@ -116,6 +128,16 @@ PLANNER_SYSTEM_PROMPT = """ You are an expert Research Planning Agent for an aut
                             After planning, estimate whether the question is SIMPLE or COMPLEX.
                             Also mention the priority in the JSON file of the subquestion.
 
+                            Every sub-question MUST contain a "source" field.
+
+                            The "source" field MUST contain exactly one of:
+                            "local", "web", or "hybrid".
+
+                            Do not omit the source field.
+
+                            The top-level "retrieval_mode" represents the overall retrieval strategy,
+                            while each sub-question's "source" represents the retrieval strategy for that specific task.
+
                             Return ONLY valid JSON.
                             The JSON schema is:
                             {
@@ -128,6 +150,7 @@ PLANNER_SYSTEM_PROMPT = """ You are an expert Research Planning Agent for an aut
                                 "question": "...",
                                 "purpose": "Why this question is needed.",
                                 "priority" : An integer value ,
+                                "source": Literal["local", "web", "hybrid"],
                                 "search_depth": Literal["basic", "advanced"] = "basic"
                                 "topic": Literal["general", "news"] = "general"
                                 }
@@ -254,6 +277,39 @@ REFLECTION_SYSTEM_PROMPT = """
                                     5. Never answer the user's original question.
                                     6. Never summarize the retrieved documents.
                                     7. Return ONLY valid JSON matching the schema below.
+                                    8. If additional evidence is required, also determine the most appropriate retrieval source for the next query.
+                                        
+                                        The source MUST be exactly one of:
+                                        "local" → search only the user's uploaded documents.
+                                        "web" → search only external web sources.
+                                        "hybrid" → search both the user's uploaded documents and external web sources.
+                                        
+                                        Choose "local" when the missing information is likely contained in the uploaded documents.
+                                        Choose "web" when the missing information requires current, external, or broader information that is not expected to be present in the uploaded documents.
+                                        Choose "hybrid" when the missing information requires combining information from both the uploaded documents and external sources.
+
+                                        Do not choose "web" or "hybrid" unnecessarily.
+                                        If "sufficient" is true, set "source" to null.
+
+                                        Example for sufficient:true ->
+                                        {
+                                            "sufficient": true,
+                                            "reasoning": "...",
+                                            "missing_info": null,
+                                            "confidence": 0.94,
+                                            "next_query": null,
+                                            "source": null
+                                        }
+
+                                        Example for sufficient : false ->
+                                        {
+                                            "sufficient": false,
+                                            "reasoning": "...",
+                                            "missing_info": "...",
+                                            "confidence": 0.37,
+                                            "next_query": "...",
+                                            "source": "web"
+                                        }
 
                                     {
                                         "sufficient": true,

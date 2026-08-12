@@ -34,12 +34,12 @@ def reflect(state : ResearchState) -> HopDecision:
     logger.info(f"Hop {state.hop_cnt}/{state.max_hops}")
     logger.info(f"Current Queries: {state.current_queries}")
     logger.info(f"Visited Queries: {state.visited_queries}")
-    logger.info(f"Retrieved {len(state.retrieved_chunks)} chunks.")
+    logger.info(f"Retrieved {len(state.evidence)} chunks.")
             
     try :
         logger.info("Sending reflection request to LLM.")
 
-        context = "\n\n".join(state.retrieved_chunks)
+        context = "\n\n".join(state.evidence)
         logger.info(f"Context Size: {len(context.split())} words")
 
         user_prompt = REFLECTION_USER_PROMPT.format(question=state.question,                                    
@@ -47,7 +47,7 @@ def reflect(state : ResearchState) -> HopDecision:
                                                     hop=state.hop_cnt,max_hops=state.max_hops,
                                                     visited_queries=state.visited_queries,
                                                     current_queries=state.current_queries,
-                                                    num_chunks=len(state.retrieved_chunks),
+                                                    num_chunks=len(state.evidence),
                                                     context=context
                                                     )
 
