@@ -1,6 +1,6 @@
 import asyncio
-from app_data.models import ResearchState
-from app_data.retrieval import retrieve , retrieve_async
+from app_data.models import ResearchState , ResearchTask
+from app_data.retrieval import retrieve_for_task, add_to_evidence_pool
 from app_data.reflection import reflect
 
 async def run_agent_loop(research_plan , original_query):
@@ -9,20 +9,25 @@ async def run_agent_loop(research_plan , original_query):
     complexity = research_plan.complexity.lower()
 
     if complexity == "complex":
-        initial_queries = [
-            task.question
-            for task in research_plan.sub_questions
-        ]
+        initial_tasks = research_plan.sub_questions
     else:
-        initial_queries = [original_query]
+        initial_tasks = [
+            ResearchTask(
+                question=original_query,
+                purpose="Answer the user's question",
+                priority=1,
+                source=research_plan.retrieval_mode,
+                search_depth="basic",
+                topic="general"
+            )
+        ]
 
 
 
     state = ResearchState(question = original_query,
                                     plan = research_plan,
-                                    current_queries = initial_queries,
+                                    current_queries = [task.question for task in initial_tasks],
                                     complexity=complexity,
-                                    retrieved_chunks = set(),
                                     visited_queries = set(),
                                     hop_cnt = 0 ,
                                     max_hops = 3,
@@ -32,24 +37,40 @@ async def run_agent_loop(research_plan , original_query):
                                     retrieval_calls = 0)
 
 
-    chunks_before = len(state.retrieved_chunks)
 
-    new_queries = [q for q in state.current_queries if q not in state.visited_queries]
-    for q in new_queries:
-        state.visited_queries.add(q)
+    tasks_to_run = [task for task in initial_tasks if task.question not in state.visited_queries]
 
-    if new_queries:
-        results = await asyncio.gather(*(retrieve_async(q) for q in new_queries))
-        for chunk_list in results:
-            state.retrieved_chunks.update(chunk_list)
-        state.retrieval_calls += len(new_queries)
+    for task in tasks_to_run:
+        state.visited_queries.add(task.question)
 
-    chunks_after = len(state.retrieved_chunks)
-    new_chunks = chunks_after - chunks_before
+    if tasks_to_run:
+
+        results = await asyncio.gather(
+            *[
+                retrieve_for_task(task)
+                for task in tasks_to_run
+            ]
+        )
+
+        retrieved_evidence = [evidence for result in results for evidence in result]
+
+        new_evidence = add_to_evidence_pool(
+            state.evidence,
+            retrieved_evidence
+        )
+
+        state.retrieval_calls += len(tasks_to_run)
+
+    else:
+        retrieved_evidence = []
+        new_evidence = 0
+
+    
 
     # Checking whether the retrieved data/context is enough to answer (Reflect) :
     # Reflect on Initital evidence
     hop_decision = reflect(state)
+
     state.llm_calls += 1
     state.confidence = hop_decision.confidence
 
@@ -57,7 +78,9 @@ async def run_agent_loop(research_plan , original_query):
     hop_record = {
         "hop": state.hop_cnt,
         "queries": state.current_queries.copy(),
-        "chunks_found": new_chunks,
+        "source": [task.source for task in tasks_to_run],
+        "evidence_found": len(retrieved_evidence) if tasks_to_run else 0,
+        "new_evidence": new_evidence,
         "reasoning": hop_decision.reasoning,
         "sufficient": hop_decision.sufficient,
         "next_query": hop_decision.next_query,
@@ -69,6 +92,7 @@ async def run_agent_loop(research_plan , original_query):
 
     # Adaptive Multi-Hop Loop
     while not hop_decision.sufficient and state.hop_cnt < state.max_hops:
+
         next_query = hop_decision.next_query 
 
         # Safety check : If no query is generated .
@@ -79,19 +103,32 @@ async def run_agent_loop(research_plan , original_query):
         if next_query in state.visited_queries  :
              break
 
+        # No retrieval source specified
+        if not hop_decision.source:
+            break
+
         state.hop_cnt += 1
 
         state.visited_queries.add(next_query)
         state.current_queries = [next_query]
 
-        chunks_before = len(state.retrieved_chunks)
+
+        next_task = ResearchTask(question=next_query,purpose=(hop_decision.missing_info or "Retrieve additional evidence"),
+                                priority=1,
+                                source=hop_decision.source,
+                                search_depth="basic",
+                                topic="general"
+                            )
+        
 
         # single query still goes through the async wrapper for consistency
-        results = await asyncio.gather(retrieve_async(next_query))
-        state.retrieved_chunks.update(results[0])
+        results = await retrieve_for_task(next_task)
+
         state.retrieval_calls += 1
 
-        chunks_after = len(state.retrieved_chunks)
+        new_evidence = add_to_evidence_pool(state.evidence,results)
+
+
 
         # Re-evaluate the accumlated evidence
         hop_decision = reflect(state)
@@ -99,19 +136,24 @@ async def run_agent_loop(research_plan , original_query):
         state.llm_calls += 1
         state.confidence = hop_decision.confidence
 
-        new_chunks = chunks_after - chunks_before
         # For Research_trail ->
         hop_record = {
                         "hop": state.hop_cnt,
-                        "queries": state.current_queries.copy(),
-                        "chunks_found": new_chunks,
+                        "queries": [next_query],
+                        "source": next_task.source,
+                        "evidence_found": len(results),
+                        "new_evidence": new_evidence,
                         "reasoning": hop_decision.reasoning,
+                        "missing_info": hop_decision.missing_info,
                         "sufficient": hop_decision.sufficient,
                         "next_query": hop_decision.next_query,
                         "confidence": hop_decision.confidence
                     }
 
         state.research_trail.append(hop_record)
+
+        if new_evidence == 0:
+            break
 
     return state
         

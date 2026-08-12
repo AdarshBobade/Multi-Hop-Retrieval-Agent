@@ -48,7 +48,7 @@ class ResearchState(BaseModel):
     question : str
     plan : ResearchPlan 
     current_queries : list[str]
-    evidence : list[Evidence]
+    evidence : list[Evidence] = []
     retrieved_chunks : set[str]
     visited_queries : set[str]
     hop_cnt : int = 0
