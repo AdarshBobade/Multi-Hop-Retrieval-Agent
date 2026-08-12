@@ -141,8 +141,8 @@ PLANNER_SYSTEM_PROMPT = """ You are an expert Research Planning Agent for an aut
 
 PLANNER_USER_PROMPT ="""
                         Create a research plan for the following question:
-
-                        {query}"""
+                        {query}
+                    """
 
 SYNTHESIS_SYSTEM_PROMPT = """ You are an expert research synthesis assistant.
                                 Your task is to answer the user's question ONLY using the supplied context.

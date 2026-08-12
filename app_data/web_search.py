@@ -57,12 +57,3 @@ def tavily_to_evidence(result: dict, query: str) -> Evidence:
         retrieval_query=query
     )
 
-
-results = web_search("latest developments in retrieval augmented generation")
-
-for result in results:
-    print(result.title)
-    print(result.url)
-    print(result.relevance_score)
-    print(result.content[:300])
-    print("---")
