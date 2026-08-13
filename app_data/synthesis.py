@@ -4,6 +4,7 @@ from groq import Groq
 from tenacity import (retry, stop_after_attempt, wait_exponential, before_sleep_log)
 from app_data.logging_config import timer
 from app_data.models import GroundednessCheck
+from app_data.evidence_format import format_evidence
 import logging
 import json
 
@@ -21,7 +22,8 @@ logger = logging.getLogger(__name__)
 def check_groundedness(state, original_query, answer_text: str) -> GroundednessCheck:
     logger.info("Groundedness check started.")
 
-    context = "\n\n".join(state.evidence)
+    context = format_evidence(state.evidence)
+
     prompt = GROUNDEDNESS_USER_PROMPT.format(
         question=original_query.query,
         answer=answer_text,
@@ -33,6 +35,14 @@ def check_groundedness(state, original_query, answer_text: str) -> GroundednessC
         messages=[{"role": "system", "content": GROUNDEDNESS_SYSTEM_PROMPT},
                   {"role": "user", "content": prompt}]
     )
+
+    raw_response = response.choices[0].message.content
+
+    print("\n===== PLANNER RAW RESPONSE =====")
+    print(repr(raw_response))
+    print("================================\n")
+
+    plan_dict = json.loads(raw_response)
 
     data = json.loads(response.choices[0].message.content)
     check = GroundednessCheck.model_validate(data)
@@ -55,7 +65,7 @@ def check_groundedness(state, original_query, answer_text: str) -> GroundednessC
 def synthesize_answer(state , original_query):
     logger.info("Synthesis started.")
 
-    context = "\n\n".join(state.evidence)
+    context = format_evidence(state.evidence)
 
     logger.info(f"Synthesizing answer, context size: {len(context.split())} words")
 

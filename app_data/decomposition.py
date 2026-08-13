@@ -43,8 +43,24 @@ def planner(query:str) -> ResearchPlan:
     try :
 
         logger.debug(response.choices[0].message.content)
-        plan_dict = json.loads(response.choices[0].message.content)
-        research_plan = ResearchPlan.model_validate(plan_dict) # Validating LLM Response
+
+        raw_response = response.choices[0].message.content
+
+        raw_response = response.choices[0].message.content.strip()
+
+        print("\n===== PLANNER RAW RESPONSE =====")
+        print(repr(raw_response))
+        print("================================\n")
+
+        if raw_response.startswith("```"):
+            raw_response = raw_response.removeprefix("```json")
+            raw_response = raw_response.removesuffix("```").strip()
+
+        plan_dict = json.loads(raw_response)
+
+        research_plan = ResearchPlan.model_validate(plan_dict)# Validating LLM Response
+        
+        
 
         logger.info(f"Planner classified query as '{research_plan.complexity}'.")
         logger.info(f"Research Goal: {research_plan.goal}")

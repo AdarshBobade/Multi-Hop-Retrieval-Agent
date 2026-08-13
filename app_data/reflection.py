@@ -4,6 +4,7 @@ from app_data.config import groq_api
 from app_data.prompts import REFLECTION_SYSTEM_PROMPT , REFLECTION_USER_PROMPT
 from tenacity import (retry, stop_after_attempt, wait_exponential, before_sleep_log)
 from app_data.logging_config import timer
+from app_data.evidence_format import format_evidence
 import logging
 import json
 
@@ -39,7 +40,8 @@ def reflect(state : ResearchState) -> HopDecision:
     try :
         logger.info("Sending reflection request to LLM.")
 
-        context = "\n\n".join(state.evidence)
+        context = format_evidence(state.evidence)
+        
         logger.info(f"Context Size: {len(context.split())} words")
 
         user_prompt = REFLECTION_USER_PROMPT.format(question=state.question,                                    
@@ -58,6 +60,19 @@ def reflect(state : ResearchState) -> HopDecision:
                                 )
 
         logger.debug(raw_response.choices[0].message.content)
+
+        raw_response = raw_response.choices[0].message.content.strip()
+
+        print("\n===== REFLECTION RAW RESPONSE =====")
+        print(repr(raw_response))
+        print("===================================\n")
+
+        if raw_response.startswith("```"):
+            raw_response = raw_response.removeprefix("```json")
+            raw_response = raw_response.removesuffix("```").strip()
+
+        decision_dict = json.loads(raw_response)
+
         decision_data = json.loads(raw_response.choices[0].message.content)
         
         decision = HopDecision.model_validate(decision_data)
