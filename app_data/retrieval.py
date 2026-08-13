@@ -89,11 +89,18 @@ async def retrieve_for_task(task: ResearchTask) -> list[Evidence]:
     return []
 
 
-def add_to_evidence_pool(evidence_pool: list[Evidence],new_evidence: list[Evidence]) -> int:
+def add_to_evidence_pool(evidence_pool: list[Evidence],
+                         new_evidence: list[Evidence]) -> int:
 
-    existing = {
-        (e.source_type, e.source, e.page, e.content)
-        for e in evidence_pool
+    existing_keys = {
+        (
+            evidence.source_type,
+            evidence.source,
+            evidence.page,
+            evidence.chunk_id,
+            evidence.content
+        )
+        for evidence in evidence_pool
     }
 
     added = 0
@@ -103,12 +110,17 @@ def add_to_evidence_pool(evidence_pool: list[Evidence],new_evidence: list[Eviden
             evidence.source_type,
             evidence.source,
             evidence.page,
+            evidence.chunk_id,
             evidence.content
         )
+        if key in existing_keys:
+            continue
 
-        if key not in existing:
-            evidence_pool.append(evidence)
-            existing.add(key)
-            added += 1
 
+        evidence.citation_id = f"E{len(evidence_pool) + 1}"
+
+        evidence_pool.append(evidence)
+        existing_keys.add(key)
+        added += 1
+        
     return added

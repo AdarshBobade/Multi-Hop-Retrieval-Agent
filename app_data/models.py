@@ -38,6 +38,7 @@ class Evidence(BaseModel):
     url: str | None = None
     doc_id: str | None = None
     chunk_id: str | None = None
+    citation_id: str | None = None
     chunk_index: int | None = None
     page: int | None = None
     relevance_score: float | None = None

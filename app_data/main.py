@@ -45,12 +45,27 @@ async def ask(que: Question):
 
         groundedness = check_groundedness(state, que, answer_text)
 
+        citations = [
+                        {
+                            "id": evidence.citation_id,
+                            "source_type": evidence.source_type,
+                            "source": evidence.source,
+                            "title": evidence.title,
+                            "url": evidence.url,
+                            "page": evidence.page,
+                            "doc_id": evidence.doc_id,
+                            "chunk_id": evidence.chunk_id,
+                            "published_date": evidence.published_date,
+                        }
+                        for evidence in state.evidence
+                    ]
+
         return {
             "answer": answer_text,
             "trail": state.research_trail,
             "confidence": state.confidence,
+            "citations" : citations,
             "groundedness": groundedness.model_dump(),
-            "sources": list(state.evidence),
         }
 
     except Exception as e:
