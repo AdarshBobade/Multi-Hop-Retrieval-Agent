@@ -42,15 +42,7 @@ def planner(query:str) -> ResearchPlan:
     # SO first converting to JSON :
     try :
 
-        logger.debug(response.choices[0].message.content)
-
-        raw_response = response.choices[0].message.content
-
         raw_response = response.choices[0].message.content.strip()
-
-        print("\n===== PLANNER RAW RESPONSE =====")
-        print(repr(raw_response))
-        print("================================\n")
 
         if raw_response.startswith("```"):
             raw_response = raw_response.removeprefix("```json")

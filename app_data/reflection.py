@@ -53,19 +53,15 @@ def reflect(state : ResearchState) -> HopDecision:
                                                     context=context
                                                     )
 
-        raw_response = client.chat.completions.create(
+        response = client.chat.completions.create(
                     model="llama-3.3-70b-versatile",
                     messages=[  {"role": "system", "content": REFLECTION_SYSTEM_PROMPT},
                                 {"role": "user", "content": user_prompt} ]
                                 )
 
-        logger.debug(raw_response.choices[0].message.content)
+        logger.debug(response.choices[0].message.content)
 
-        raw_response = raw_response.choices[0].message.content.strip()
-
-        print("\n===== REFLECTION RAW RESPONSE =====")
-        print(repr(raw_response))
-        print("===================================\n")
+        raw_response = response.choices[0].message.content.strip()
 
         if raw_response.startswith("```"):
             raw_response = raw_response.removeprefix("```json")
