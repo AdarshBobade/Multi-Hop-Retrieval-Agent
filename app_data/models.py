@@ -22,7 +22,7 @@ class ResearchTask(BaseModel):
     priority : int
     source: Literal["local", "web", "hybrid"]
     search_depth: Literal["basic", "advanced"] = "basic"
-    topic: Literal["general", "news"] = "general"
+    topic: str = "general"
 
 class ResearchPlan(BaseModel):
     complexity : str

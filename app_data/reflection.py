@@ -6,6 +6,7 @@ from tenacity import (retry, stop_after_attempt, wait_exponential, before_sleep_
 from app_data.logging_config import timer
 from app_data.evidence_format import format_evidence
 import logging
+import re
 import json
 
 client = Groq(api_key=groq_api)
@@ -39,7 +40,6 @@ def reflect(state : ResearchState) -> HopDecision:
             
     try :
         logger.info("Sending reflection request to LLM.")
-
         context = format_evidence(state.evidence)
         
         logger.info(f"Context Size: {len(context.split())} words")
@@ -61,11 +61,23 @@ def reflect(state : ResearchState) -> HopDecision:
 
         logger.debug(response.choices[0].message.content)
 
-        raw_response = response.choices[0].message.content.strip()
 
-        if raw_response.startswith("```"):
-            raw_response = raw_response.removeprefix("```json")
-            raw_response = raw_response.removesuffix("```").strip()
+        raw_response = response.choices[0].message.content
+        if raw_response is None:
+            raise ValueError("Reflection response was empty.")
+
+        raw_response = raw_response.strip()
+
+        # Remove code fences like ```json ... ``` or ``` ... ```
+        raw_response = re.sub(r"^```(?:json)?\s*", "", raw_response, flags=re.IGNORECASE)
+        raw_response = re.sub(r"\s*```$", "", raw_response, flags=re.IGNORECASE)
+
+        # If the model added explanation before or after JSON, extract the first JSON object
+        start = raw_response.find("{")
+        end = raw_response.rfind("}")
+
+        if start != -1 and end != -1 and end > start:
+            raw_response = raw_response[start:end + 1]
 
         decision_dict = json.loads(raw_response)
         decision = HopDecision.model_validate(decision_dict)
