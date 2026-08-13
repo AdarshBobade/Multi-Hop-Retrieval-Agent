@@ -258,18 +258,45 @@ function App() {
             </section>
           )}
 
-          {result.sources.length > 0 && (
+          {result.citations.length > 0 && (
             <section className="sources">
               <h3>Sources</h3>
               <ul>
-                {result.sources.map((source, index) => (
-                  <li key={`${index}-${source.slice(0, 24)}`}>
-                    <p>{source}</p>
+                {result.citations.map((citation) => (
+                  <li key={citation.id}>
+                    <p>
+                      <strong>[{citation.id}]</strong>{' '}
+                      {citation.source_type === 'web' ? (
+                        <a href={citation.url ?? undefined} target="_blank" rel="noopener noreferrer">
+                          {citation.title ?? citation.source}
+                        </a>
+                      ) : (
+                        <>
+                          {citation.source}
+                          {citation.page !== null && ` (page ${citation.page})`}
+                        </>
+                      )}
+                    </p>
                   </li>
                 ))}
               </ul>
             </section>
           )}
+
+          <section className="groundedness">
+            <h3>Groundedness check</h3>
+            <p>
+              <strong>{result.groundedness.verdict.replace('_', ' ')}</strong>{' '}
+              ({Math.round(result.groundedness.score * 100)}%)
+            </p>
+            {result.groundedness.unsupported_claims.length > 0 && (
+              <ul>
+                {result.groundedness.unsupported_claims.map((claim, i) => (
+                  <li key={i}>⚠ {claim}</li>
+                ))}
+              </ul>
+            )}
+          </section>
         </section>
       )}
 

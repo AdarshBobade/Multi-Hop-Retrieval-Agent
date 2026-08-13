@@ -72,10 +72,9 @@ def reflect(state : ResearchState) -> HopDecision:
             raw_response = raw_response.removesuffix("```").strip()
 
         decision_dict = json.loads(raw_response)
-
-        decision_data = json.loads(raw_response.choices[0].message.content)
+        decision = HopDecision.model_validate(decision_dict)
         
-        decision = HopDecision.model_validate(decision_data)
+        
         logger.info("Reflection response successfully validated.")
 
         logger.info(f"Sufficient: {decision.sufficient}")
