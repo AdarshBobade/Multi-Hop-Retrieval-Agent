@@ -66,6 +66,9 @@ async def ask(que: Question):
             "confidence": state.confidence,
             "citations" : citations,
             "groundedness": groundedness.model_dump(),
+            "retrieval_calls": state.retrieval_calls,
+            "web_search_calls": state.web_search_calls,
+            "llm_calls": state.llm_calls,
         }
 
     except Exception as e:

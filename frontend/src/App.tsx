@@ -297,6 +297,15 @@ function App() {
               </ul>
             )}
           </section>
+        
+          <section className="stats">
+            <h3>Query stats</h3>
+            <ul className="stats-list">
+              <li>Retrieval calls: <strong>{result.retrieval_calls}</strong></li>
+              <li>Web search calls: <strong>{result.web_search_calls}</strong></li>
+              <li>LLM calls: <strong>{result.llm_calls}</strong></li>
+            </ul>
+          </section>
         </section>
       )}
 

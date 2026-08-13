@@ -246,7 +246,7 @@ REFLECTION_SYSTEM_PROMPT = """
 
                                     "next_query": null
 
-                                    Set "missing_information" to null.
+                                    Set "missing_info" to null.
 
                                     3. If important information is still missing,
                                     set:
@@ -311,23 +311,7 @@ REFLECTION_SYSTEM_PROMPT = """
                                             "source": "web"
                                         }
 
-                                    {
-                                        "sufficient": true,
-                                        "reasoning": "...",
-                                        "missing_info": null,
-                                        "confidence": 0.94,
-                                        "next_query": null
-                                    }
-
-                                    OR
-
-                                    {
-                                        "sufficient": false,
-                                        "reasoning": "...",
-                                        "missing_info": "...",
-                                        "confidence": 0.37,
-                                        "next_query": "..."
-                                    }
+                                    
                                     
                                     """                        
 

@@ -3,6 +3,17 @@ from app_data.models import ResearchState , ResearchTask
 from app_data.retrieval import retrieve_for_task, add_to_evidence_pool
 from app_data.reflection import reflect
 
+
+def count_calls(task_source: str) -> tuple[int, int]:
+    """Returns (retrieval_calls, web_search_calls) for a given task source."""
+    if task_source == "local":
+        return 1, 0
+    if task_source == "web":
+        return 0, 1
+    if task_source == "hybrid":
+        return 1, 1
+    return 0, 0
+
 async def run_agent_loop(research_plan , original_query):
 
     # Complexity Routing
@@ -59,7 +70,10 @@ async def run_agent_loop(research_plan , original_query):
             retrieved_evidence
         )
 
-        state.retrieval_calls += len(tasks_to_run)
+        for task in tasks_to_run:
+            r_calls, w_calls = count_calls(task.source)
+            state.retrieval_calls += r_calls
+            state.web_search_calls += w_calls
 
     else:
         retrieved_evidence = []
@@ -124,7 +138,9 @@ async def run_agent_loop(research_plan , original_query):
         # single query still goes through the async wrapper for consistency
         results = await retrieve_for_task(next_task)
 
-        state.retrieval_calls += 1
+        r_calls, w_calls = count_calls(next_task.source)
+        state.retrieval_calls += r_calls
+        state.web_search_calls += w_calls
 
         new_evidence = add_to_evidence_pool(state.evidence,results)
 

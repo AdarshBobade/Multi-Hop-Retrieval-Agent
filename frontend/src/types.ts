@@ -25,6 +25,9 @@ export type AskResponse = {
   confidence: number
   citations: Citation[]
   groundedness: GroundednessCheck
+  retrieval_calls: number
+  web_search_calls: number
+  llm_calls: number
 }
 
 export type UploadResponse = {
