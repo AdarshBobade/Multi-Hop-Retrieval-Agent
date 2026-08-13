@@ -31,28 +31,53 @@ def chunk_text(text, chunk_size=200):
 def ingest_pdf(path: str | Path) -> dict:
     path = Path(path)
     reader = PdfReader(str(path))
-    full_text = " ".join(page.extract_text() or "" for page in reader.pages)
-
-    if not full_text.strip():
-        raise ValueError("No extractable text found in the PDF.")
-
-    chunks = chunk_text(full_text)
-    if not chunks:
-        raise ValueError("PDF produced no text chunks.")
 
     doc_id = uuid.uuid4().hex
+
+    documents = []
+    metadatas = []
+    ids = []
+
+    chunk_index = 0
+
+    for page_number, page in enumerate(reader.pages, start=1):
+
+        text = page.extract_text() or ""
+
+        if not text.strip():
+            continue
+
+        chunks = chunk_text(text)
+
+        for chunk in chunks:
+
+            documents.append(chunk)
+
+            metadatas.append({
+                                "doc_id": doc_id,
+                                "source": path.name,
+                                "page": page_number,
+                                "chunk_index": chunk_index,
+                            })
+
+            ids.append(f"{doc_id}-{chunk_index}")
+            chunk_index += 1
+
+    if not documents:
+        raise ValueError("No extractable text found in the PDF.")
+
     collection.add(
-        documents=chunks,
-        ids=[f"{doc_id}-{i}" for i in range(len(chunks))],
-        metadatas=[{"source": path.name, "doc_id": doc_id} for _ in chunks],
-    )
+                        documents=documents,
+                        ids=ids,
+                        metadatas=metadatas
+                    )
 
     return {
-        "doc_id": doc_id,
-        "filename": path.name,
-        "chunks": len(chunks),
-        "pages": len(reader.pages),
-    }
+                "doc_id": doc_id,
+                "filename": path.name,
+                "chunks": len(documents),
+                "pages": len(reader.pages)
+            }
 
 
 def save_upload(filename: str, content: bytes) -> Path:

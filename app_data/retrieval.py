@@ -10,20 +10,27 @@ def retrieve(query , k_closest = 5) -> list[Evidence]:
     documents = results["documents"][0]
     metadatas = results["metadatas"][0]
     distances = results["distances"][0]
+    ids = results["ids"][0]
 
-    for document, metadata, distance in zip(documents,metadatas,distances):
+    for document, metadata, distance,chunk_id in zip(documents,metadatas,distances,ids):
         evidence.append(
             chroma_to_evidence(
                 document=document,
                 metadata=metadata,
                 distance=distance,
-                query=query
+                query=query,
+                chunk_id=chunk_id
+
             )
         )
 
     return evidence
 
-def chroma_to_evidence(document: str,metadata: dict,distance: float | None,query: str) -> Evidence:
+def chroma_to_evidence(document: str,
+                       metadata: dict,
+                       distance: float | None,
+                       query: str,
+                       chunk_id : str | None) -> Evidence:
 
     return Evidence(
         content=document,
@@ -31,6 +38,8 @@ def chroma_to_evidence(document: str,metadata: dict,distance: float | None,query
         source=metadata.get("source", "unknown"),
         title=metadata.get("title"),
         doc_id=metadata.get("doc_id"),
+        chunk_id=chunk_id,
+        chunk_index=metadata.get("chunk_index"),
         page=metadata.get("page"),
         distance=distance,
         retrieval_query=query
