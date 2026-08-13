@@ -26,7 +26,15 @@ export async function askQuestion(query: string): Promise<AskResponse> {
     throw new Error(await readError(response))
   }
 
-  return response.json() as Promise<AskResponse>
+  const data = await response.json();
+
+  // Backends may return citations instead of a simple `sources` string array.
+  // Normalize common shapes so the UI can always rely on `sources: string[]`.
+  if (!('sources' in data) && Array.isArray((data as any).citations)) {
+    (data as any).sources = (data as any).citations.map((c: any) => c.source ?? c.title ?? c.url ?? c.doc_id ?? JSON.stringify(c));
+  }
+
+  return data as AskResponse
 }
 
 export async function uploadPdf(file: File): Promise<UploadResponse> {
