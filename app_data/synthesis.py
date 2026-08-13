@@ -42,9 +42,7 @@ def check_groundedness(state, original_query, answer_text: str) -> GroundednessC
     print(repr(raw_response))
     print("================================\n")
 
-    plan_dict = json.loads(raw_response)
-
-    data = json.loads(response.choices[0].message.content)
+    data = json.loads(raw_response)
     check = GroundednessCheck.model_validate(data)
 
     logger.info(f"Groundedness score: {check.score:.2f}, verdict: {check.verdict}")
