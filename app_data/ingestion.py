@@ -1,10 +1,12 @@
 import uuid
+import hashlib
 from pathlib import Path
 
 import chromadb
 from chromadb.utils.embedding_functions import SentenceTransformerEmbeddingFunction
 from pypdf import PdfReader
 
+# Chroma
 client = chromadb.PersistentClient(path="./chroma_db")
 embed_fn = SentenceTransformerEmbeddingFunction(
     model_name="all-MiniLM-L6-v2"
@@ -12,6 +14,7 @@ embed_fn = SentenceTransformerEmbeddingFunction(
 
 collection = client.get_or_create_collection("docs", embedding_function=embed_fn)
 
+# File config
 UPLOAD_DIR = Path("data/uploads")
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -19,6 +22,7 @@ ALLOWED_EXTENSIONS = {".pdf"}
 MAX_UPLOAD_BYTES = 25 * 1024 * 1024  # 25 MB
 
 
+# Chunking
 def chunk_text(text, chunk_size=200):
     words = text.split()
     overlap = 50  # Overlapping Chunking
@@ -27,12 +31,24 @@ def chunk_text(text, chunk_size=200):
         for i in range(0, len(words), chunk_size - overlap)
     ]
 
+# File hash 
+def calculate_file_hash(content: bytes) -> str:
+    """
+    SHA256 hash used to detect duplicate uploads.
+    """
+    return hashlib.sha256(content).hexdigest()
 
-def ingest_pdf(path: str | Path) -> dict:
+
+# Ingest PDF
+def ingest_pdf(path: str | Path,
+               file_hash: str | None = None,
+               original_filename: str | None = None) -> dict:
+    
     path = Path(path)
     reader = PdfReader(str(path))
 
     doc_id = uuid.uuid4().hex
+    filename = original_filename or path.name
 
     documents = []
     metadatas = []
@@ -58,6 +74,7 @@ def ingest_pdf(path: str | Path) -> dict:
                                 "source": path.name,
                                 "page": page_number,
                                 "chunk_index": chunk_index,
+                                "file_hash": file_hash or ""
                             })
 
             ids.append(f"{doc_id}-{chunk_index}")
@@ -71,6 +88,8 @@ def ingest_pdf(path: str | Path) -> dict:
                         ids=ids,
                         metadatas=metadatas
                     )
+    from app_data.retrieval import invalidate_bm25_cache
+    invalidate_bm25_cache()
 
     return {
                 "doc_id": doc_id,
@@ -80,6 +99,7 @@ def ingest_pdf(path: str | Path) -> dict:
             }
 
 
+# Save upload
 def save_upload(filename: str, content: bytes) -> Path:
     if not filename:
         raise ValueError("Filename is required.")
@@ -99,14 +119,115 @@ def save_upload(filename: str, content: bytes) -> Path:
     dest.write_bytes(content)
     return dest
 
+# Delete documnets
+def delete_document(doc_id: str) -> int:
+    """
+    Delete every chunk belonging to a document.
+    Returns number of deleted chunks.
+    """
+    results = collection.get(where={"doc_id": doc_id})
+
+    ids = results["ids"]
+
+    if not ids:
+        return 0
+
+    collection.delete(ids=ids)
+    return len(ids)
+
+
+# List Documents
+def list_documents() -> list[dict]:
+    """
+    Return unique documents currently stored in Chroma.
+    """
+    results = collection.get(include=["metadatas"])
+    documents = {}
+
+    for metadata in results["metadatas"]:
+        doc_id = metadata.get("doc_id")
+        if not doc_id:
+            continue
+
+        if doc_id not in documents:
+
+            documents[doc_id] = {
+                                    "doc_id": doc_id,
+                                    "filename": metadata.get("source",
+                                                            "unknown"
+                                                            ),
+                                    "file_hash": metadata.get("file_hash"),
+                }
+
+    return list(documents.values())
+
+
+
+
 
 def ingest_upload(filename: str, content: bytes) -> dict:
+    file_hash = calculate_file_hash(content)
+
+    # 1. Check if EXACT same file already exists
+    existing_hash = collection.get(where={
+                                            "file_hash": file_hash
+                                        },
+                                    include=["metadatas"])
+
+    if existing_hash["ids"]:
+
+        metadata = existing_hash["metadatas"][0]
+
+        return {
+            "doc_id": metadata["doc_id"],
+            "filename": metadata.get(
+                "source",
+                filename
+            ),
+            "chunks": len(
+                existing_hash["ids"]
+            ),
+            "already_exists": True,
+        }
+
+    # 2. Check if same filename exists
+    # If contents changed, replace the old version.
+
+    existing_filename = collection.get(
+        where={
+            "source": filename
+        },
+        include=["metadatas"],
+    )
+
+    old_doc_ids = {
+        metadata.get("doc_id")
+        for metadata in existing_filename["metadatas"]
+        if metadata.get("doc_id")
+    }
+
+    for old_doc_id in old_doc_ids:
+
+        if old_doc_id:
+            delete_document(old_doc_id)
+
+
     path = save_upload(filename, content)
-    result = ingest_pdf(path)
+    result = ingest_pdf(path=path,
+                        file_hash=file_hash,
+                        original_filename=filename)
+    
     result["path"] = str(path)
+    result["already_exists"] = False
+
     return result
 
 
+
 if __name__ == "__main__":
-    print(ingest_pdf("data/notes.pdf"))
+    print("Documents currently stored:")
+
+    for document in list_documents():
+        print(document)
+
     print("Ingested !")
