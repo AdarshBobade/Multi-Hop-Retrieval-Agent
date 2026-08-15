@@ -74,8 +74,8 @@ def planner(query:str) -> ResearchPlan:
                                 purpose="Fallback due to planner parsing failure.",
                                 priority=1,
                                 source="local",
-                                search_depth="basic",
-                                topic="general"
+                                search_depth="basic"
+                                
                             )
                         ]
                     )

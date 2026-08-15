@@ -22,7 +22,6 @@ class ResearchTask(BaseModel):
     priority : int
     source: Literal["local", "web", "hybrid"]
     search_depth: Literal["basic", "advanced"] = "basic"
-    topic: str = "general"
 
 class ResearchPlan(BaseModel):
     complexity : str
@@ -45,6 +44,7 @@ class Evidence(BaseModel):
     distance: float | None = None
     published_date: str | None = None
     retrieval_query: str | None = None
+    rerank_score: float | None = None
 
 
 class ResearchState(BaseModel):

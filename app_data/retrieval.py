@@ -2,6 +2,7 @@ from app_data.ingestion import collection
 from app_data.models import Evidence , ResearchTask
 from app_data.web_search import web_search
 from rank_bm25 import BM25Okapi
+from app_data.reranking import rerank
 import asyncio
 
 bm25_cache = None
@@ -26,7 +27,7 @@ def invalidate_bm25_cache():
     global bm25_cache
     bm25_cache = None
 
-def retrieve_bm25(query: str , k: int =5) -> list[Evidence] :
+def retrieve_bm25(query: str , k_closest: int=10) -> list[Evidence] :
     bm25 , documents , ids , metadatas = get_bm25_index()
     if not documents :
         return []
@@ -34,7 +35,7 @@ def retrieve_bm25(query: str , k: int =5) -> list[Evidence] :
     tokenized_query = query.lower().split()
     scores = bm25.get_scores(tokenized_query)
 
-    ranked_indices = sorted(range(len(scores)), key=lambda i: scores[i], reverse=True)[:k]
+    ranked_indices = sorted(range(len(scores)), key=lambda i: scores[i], reverse=True)[:k_closest]
 
     evidence = []
     for idx in ranked_indices:
@@ -64,20 +65,21 @@ def reciprocal_rank_fusion(result_lists: list[list[Evidence]], k: int = 60) -> l
     ranked_keys = sorted(scores.keys(), key=lambda key: scores[key], reverse=True)
     return [items[key] for key in ranked_keys]
 
-def retrieve_hybrid_local(query: str, k: int = 5) -> list[Evidence]:
-    semantic_results = retrieve(query, k_closest=k)
-    bm25_results = retrieve_bm25(query, k=k)
+def retrieve_hybrid_local(query: str, retrieval_k:int= 10 , final_k :int= 5) -> list[Evidence]:
+    semantic_results = retrieve(query, k_closest=retrieval_k)
+    bm25_results = retrieve_bm25(query, k_closest=retrieval_k)
     fused = reciprocal_rank_fusion([semantic_results, bm25_results], k=60)
-    return fused[:k]
 
-async def retrieve_hybrid_local_async(query: str, k_closest: int = 5):
+    reranked = rerank(query , fused[:retrieval_k])
+
+    return reranked[:final_k]
+
+async def retrieve_hybrid_local_async(query: str, k_closest: int = 10):
     return await asyncio.to_thread(retrieve_hybrid_local, query, k_closest)
 
 
 
-
-
-def retrieve(query , k_closest = 5) -> list[Evidence]:
+def retrieve(query , k_closest = 10) -> list[Evidence]:
     results = collection.query(query_texts=[query] , n_results=k_closest)
     evidence = []
 
@@ -119,19 +121,19 @@ def chroma_to_evidence(document: str,
         retrieval_query=query
     )
 
-async def retrieve_async(query: str , k_closest: int = 5):
+async def retrieve_async(query: str , k_closest: int = 10):
     return await asyncio.to_thread(retrieve, query ,k_closest)
 
 
 
 
-async def web_search_async(query: str,search_depth: str = "basic",topic: str = "general") -> list[Evidence]:
+async def web_search_async(query: str, search_depth: str = "basic", topic: str = "general") -> list[Evidence]:
 
     return await asyncio.to_thread(
         web_search,
-        query,
-        search_depth,
-        topic
+        query=query,
+        search_depth=search_depth,
+        topic=topic,
     )
 
 
@@ -144,7 +146,7 @@ async def retrieve_for_task(task: ResearchTask) -> list[Evidence]:
         return await web_search_async(
             query=task.question,
             search_depth=task.search_depth,
-            topic=task.topic
+            topic="general",
         )
 
     if task.source == "hybrid":
@@ -154,7 +156,7 @@ async def retrieve_for_task(task: ResearchTask) -> list[Evidence]:
             web_search_async(
                 query=task.question,
                 search_depth=task.search_depth,
-                topic=task.topic
+                topic="general",
             )
         )
 

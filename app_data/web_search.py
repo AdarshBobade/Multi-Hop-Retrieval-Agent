@@ -9,16 +9,19 @@ client = TavilyClient(api_key=tavily_api)
 
 
 def web_search(query:str,
-               topic: str = "general",
-               search_depth: str = "basic") -> list[Evidence] :
+               search_depth: str = "basic",
+               topic: str = "general") -> list[Evidence] :
+    normalized_topic = topic if topic in {"general", "news", "finance"} else "general"
+    normalized_depth = search_depth if search_depth in {"basic", "advanced"} else "basic"
+
     try:
         web_response = client.search(
                                     query=query,
-                                    search_depth=search_depth,
-                                    topic=topic,
+                                    search_depth=normalized_depth,
+                                    topic=normalized_topic,
                                     max_results=5,
                                     include_answer=False,
-                                    include_raw_content=(search_depth == "advanced")
+                                    include_raw_content=(normalized_depth == "advanced")
                                 )
 
     except Exception as e:

@@ -28,8 +28,8 @@ async def run_agent_loop(research_plan , original_query):
                 purpose="Answer the user's question",
                 priority=1,
                 source=research_plan.retrieval_mode,
-                search_depth="basic",
-                topic="general"
+                search_depth="basic"
+                
             )
         ]
 
@@ -127,11 +127,12 @@ async def run_agent_loop(research_plan , original_query):
         state.current_queries = [next_query]
 
 
-        next_task = ResearchTask(question=next_query,purpose=(hop_decision.missing_info or "Retrieve additional evidence"),
+        next_task = ResearchTask(question=next_query,
+                                purpose=(hop_decision.missing_info or "Retrieve additional evidence"),
                                 priority=1,
                                 source=hop_decision.source,
-                                search_depth="basic",
-                                topic="general"
+                                search_depth="basic"
+                                
                             )
         
 
