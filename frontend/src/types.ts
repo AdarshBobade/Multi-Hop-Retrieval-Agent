@@ -10,6 +10,7 @@ export type Citation = {
   doc_id: string | null
   chunk_id: string | null
   published_date: string | null
+  content: string | null
 }
 
 export type GroundednessCheck = {

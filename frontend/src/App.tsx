@@ -1,9 +1,11 @@
 import {
+  useEffect,
   useRef,
   useState,
   type ChangeEvent,
   type DragEvent,
   type FormEvent,
+  type ReactNode,
 } from 'react'
 import ReactMarkdown from 'react-markdown'
 import { askQuestion, uploadPdf } from './api'
@@ -18,6 +20,89 @@ const EXAMPLES = [
 
 const MAX_UPLOAD_BYTES = 25 * 1024 * 1024
 
+const RESEARCH_STAGES = [
+  { label: 'Planning', detail: 'Breaking the question into research hops' },
+  { label: 'Retrieving', detail: 'Searching the available sources' },
+  { label: 'Chunking', detail: 'Collecting relevant evidence chunks' },
+  { label: 'Reranking', detail: 'Scoring evidence by relevance' },
+  { label: 'Reflecting', detail: 'Checking whether more evidence is needed' },
+  { label: 'Synthesizing', detail: 'Writing a cited answer from the evidence' },
+] as const
+
+type ProgressState = 'idle' | 'working' | 'complete' | 'error'
+
+function useTypewriter(text: string, charactersPerSecond = 90) {
+  const [visibleLength, setVisibleLength] = useState(0)
+
+  useEffect(() => {
+    setVisibleLength(0)
+    if (!text) return
+
+    let index = 0
+    const interval = window.setInterval(() => {
+      index = Math.min(index + 1, text.length)
+      setVisibleLength(index)
+      if (index === text.length) window.clearInterval(interval)
+    }, 1000 / charactersPerSecond)
+
+    return () => window.clearInterval(interval)
+  }, [text, charactersPerSecond])
+
+  return {
+    text: text.slice(0, visibleLength),
+    isTyping: visibleLength < text.length,
+  }
+}
+
+function formatLabel(value: string) {
+  return value
+    .replace(/([a-z])([A-Z])/g, '$1 $2')
+    .replace(/[_-]+/g, ' ')
+    .replace(/\b\w/g, (character) => character.toUpperCase())
+}
+
+function renderTrailValue(value: unknown): ReactNode {
+  if (value === null || value === undefined || value === '') return <span className="trail-empty">—</span>
+  if (Array.isArray(value)) {
+    if (value.length === 0) return <span className="trail-empty">None</span>
+    return (
+      <ul className="trail-value-list">
+        {value.map((item, index) => <li key={index}>{renderTrailValue(item)}</li>)}
+      </ul>
+    )
+  }
+  if (typeof value === 'object') {
+    return (
+      <dl className="trail-nested">
+        {Object.entries(value as Record<string, unknown>).map(([key, nestedValue]) => (
+          <div key={key}>
+            <dt>{formatLabel(key)}</dt>
+            <dd>{renderTrailValue(nestedValue)}</dd>
+          </div>
+        ))}
+      </dl>
+    )
+  }
+  if (typeof value === 'boolean') return <span className="trail-boolean">{value ? 'Yes' : 'No'}</span>
+  return String(value)
+}
+
+function TrailStepCard({ step, index }: { step: Record<string, unknown>; index: number }) {
+  return (
+    <li className="trail-card">
+      <span className="hop-index">Hop {index + 1}</span>
+      <dl className="trail-fields">
+        {Object.entries(step).map(([key, value]) => (
+          <div key={key}>
+            <dt>{formatLabel(key)}</dt>
+            <dd>{renderTrailValue(value)}</dd>
+          </div>
+        ))}
+      </dl>
+    </li>
+  )
+}
+
 function App() {
   const [query, setQuery] = useState('')
   const [loading, setLoading] = useState(false)
@@ -27,8 +112,21 @@ function App() {
   const [uploadError, setUploadError] = useState<string | null>(null)
   const [result, setResult] = useState<AskResponse | null>(null)
   const [uploads, setUploads] = useState<UploadResponse[]>([])
+  const [progressStage, setProgressStage] = useState(-1)
+  const [progressState, setProgressState] = useState<ProgressState>('idle')
   const resultsRef = useRef<HTMLElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const typedAnswer = useTypewriter(result?.answer ?? '')
+
+  useEffect(() => {
+    if (!loading) return
+
+    const interval = window.setInterval(() => {
+      setProgressStage((current) => Math.min(current + 1, RESEARCH_STAGES.length - 1))
+    }, 900)
+
+    return () => window.clearInterval(interval)
+  }, [loading])
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -38,15 +136,20 @@ function App() {
     setLoading(true)
     setError(null)
     setResult(null)
+    setProgressStage(0)
+    setProgressState('working')
 
     try {
       const data = await askQuestion(trimmed)
       setResult(data)
+      setProgressStage(RESEARCH_STAGES.length - 1)
+      setProgressState('complete')
       requestAnimationFrame(() => {
         resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
       })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong.')
+      setProgressState('error')
     } finally {
       setLoading(false)
     }
@@ -230,6 +333,21 @@ function App() {
         </div>
       )}
 
+      {progressState !== 'idle' && (
+        <div className={`research-status is-${progressState}`} role="status" aria-live="polite">
+          <span className="research-status-loader" aria-hidden="true" />
+          <span className="research-status-text">
+            {progressState === 'complete' ? (
+              <><strong>Research complete</strong><span>The answer is ready</span></>
+            ) : progressState === 'error' ? (
+              <><strong>Research stopped</strong><span>Please try the request again</span></>
+            ) : (
+              <><strong>{RESEARCH_STAGES[progressStage]?.label ?? 'Working'}</strong><span>{RESEARCH_STAGES[progressStage]?.detail}</span></>
+            )}
+          </span>
+        </div>
+      )}
+
       {result && (
         <section className="results" ref={resultsRef} aria-live="polite">
           <div className="result-head">
@@ -241,7 +359,8 @@ function App() {
           </div>
 
           <article className="answer prose">
-            <ReactMarkdown>{result.answer}</ReactMarkdown>
+            <ReactMarkdown>{typedAnswer.text}</ReactMarkdown>
+            {typedAnswer.isTyping && <span className="typewriter-cursor" aria-hidden="true" />}
           </article>
 
           {result.trail.length > 0 && (
@@ -249,10 +368,7 @@ function App() {
               <h3>Research trail</h3>
               <ol>
                 {result.trail.map((step, index) => (
-                  <li key={index}>
-                    <span className="hop-index">Hop {index + 1}</span>
-                    <pre>{JSON.stringify(step, null, 2)}</pre>
-                  </li>
+                  <TrailStepCard key={index} step={step} index={index} />
                 ))}
               </ol>
             </section>
@@ -264,19 +380,29 @@ function App() {
               <ul>
                 {result.citations.map((citation) => (
                   <li key={citation.id}>
-                    <p>
-                      <strong>[{citation.id}]</strong>{' '}
-                      {citation.source_type === 'web' ? (
-                        <a href={citation.url ?? undefined} target="_blank" rel="noopener noreferrer">
+                    <details className="source-details">
+                      <summary>
+                        <span className="source-summary-title">
+                          <strong>[{citation.id}]</strong>{' '}
                           {citation.title ?? citation.source}
-                        </a>
-                      ) : (
-                        <>
+                        </span>
+                        <span className="source-summary-meta">
+                          {citation.source_type === 'web' ? 'Web source' : 'Document'}
+                          {citation.page !== null && ` · Page ${citation.page}`}
+                        </span>
+                      </summary>
+                      <div className="source-evidence">
+                        <p className="source-location">
                           {citation.source}
-                          {citation.page !== null && ` (page ${citation.page})`}
-                        </>
-                      )}
-                    </p>
+                          {citation.page !== null && ` · Page ${citation.page}`}
+                          {citation.url && (
+                            <> · <a href={citation.url} target="_blank" rel="noopener noreferrer">Open source</a></>
+                          )}
+                        </p>
+                        <p className="evidence-label">Retrieved evidence</p>
+                        <p className="evidence-text">{citation.content || 'No evidence excerpt was returned for this source.'}</p>
+                      </div>
+                    </details>
                   </li>
                 ))}
               </ul>
@@ -289,6 +415,7 @@ function App() {
               <strong>{result.groundedness.verdict.replace('_', ' ')}</strong>{' '}
               ({Math.round(result.groundedness.score * 100)}%)
             </p>
+            {result.groundedness.reasoning && <p className="groundedness-reasoning">{result.groundedness.reasoning}</p>}
             {result.groundedness.unsupported_claims.length > 0 && (
               <ul>
                 {result.groundedness.unsupported_claims.map((claim, i) => (

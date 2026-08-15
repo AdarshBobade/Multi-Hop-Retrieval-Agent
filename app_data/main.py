@@ -56,6 +56,7 @@ async def ask(que: Question):
                             "doc_id": evidence.doc_id,
                             "chunk_id": evidence.chunk_id,
                             "published_date": evidence.published_date,
+                            "content": evidence.content,
                         }
                         for evidence in state.evidence
                     ]
