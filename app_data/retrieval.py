@@ -31,7 +31,7 @@ def retrieve_bm25(query: str , k: int =5) -> list[Evidence] :
     if not documents :
         return []
 
-    tokenized_query = query.lower().strip()
+    tokenized_query = query.lower().split()
     scores = bm25.get_scores(tokenized_query)
 
     ranked_indices = sorted(range(len(scores)), key=lambda i: scores[i], reverse=True)[:k]

@@ -132,6 +132,9 @@ def delete_document(doc_id: str) -> int:
     if not ids:
         return 0
 
+    from app_data.retrieval import invalidate_bm25_cache
+    invalidate_bm25_cache()
+
     collection.delete(ids=ids)
     return len(ids)
 
