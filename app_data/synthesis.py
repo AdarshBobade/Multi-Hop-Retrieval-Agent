@@ -71,13 +71,13 @@ def _parse_groundedness_response(raw_response: str | None) -> GroundednessCheck:
     before_sleep=before_sleep_log(logger, logging.WARNING),
     reraise=True,
 )
-def check_groundedness(state, original_query, answer_text: str) -> GroundednessCheck:
+def check_groundedness(state, question:str, answer_text: str) -> GroundednessCheck:
     logger.info("Groundedness check started.")
 
     context = format_evidence(state.evidence)
 
     prompt = GROUNDEDNESS_USER_PROMPT.format(
-        question=original_query.query,
+        question=question,
         answer=answer_text,
         context=context
     )

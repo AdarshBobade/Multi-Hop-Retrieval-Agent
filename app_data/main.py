@@ -4,7 +4,7 @@ import logging
 from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 
-from app_data.cotextualize import contextualize_query
+from app_data.contextualize import contextualize_query
 from app_data.agentic_loop import run_agent_loop
 from app_data.decomposition import planner
 from app_data.ingestion import ingest_upload , list_documents ,delete_document
@@ -56,7 +56,7 @@ async def ask(que: Question):
         response = synthesize_answer(state , standalone_query)
         answer_text = response.choices[0].message.content
 
-        groundedness = check_groundedness(state, que, answer_text)
+        groundedness = check_groundedness(state, standalone_query, answer_text)
 
         citations = [
                         {

@@ -22,7 +22,7 @@ tavily_api = os.getenv("TAVILY_API_KEY")
 logger = logging.getLogger(__name__)
 
 from groq import Groq, RateLimitError
-from app_data.config import groq_api
+
 
 client = Groq(api_key=groq_api)
 
