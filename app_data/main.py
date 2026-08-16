@@ -51,9 +51,9 @@ async def ask(que: Question):
         standalone_query = contextualize_query(query=que.query, history=que.history)
         research_plan = planner(standalone_query)  # Returns an object of the class ResearchPlan
 
-        state = await run_agent_loop(research_plan, que.query)
+        state = await run_agent_loop(research_plan, standalone_query)
        
-        response = synthesize_answer(state , que)
+        response = synthesize_answer(state , standalone_query)
         answer_text = response.choices[0].message.content
 
         groundedness = check_groundedness(state, que, answer_text)

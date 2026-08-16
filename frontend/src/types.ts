@@ -1,5 +1,10 @@
 export type TrailStep = Record<string, unknown>
 
+export type Conversation = {
+  question: string
+  answer: string
+}
+
 export type Citation = {
   id: string
   source_type: string

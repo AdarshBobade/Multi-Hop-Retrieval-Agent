@@ -9,7 +9,7 @@ import {
 } from 'react'
 import ReactMarkdown from 'react-markdown'
 import { askQuestion, deleteDocument, uploadPdf } from './api'
-import type { AskResponse, Document } from './types'
+import type { AskResponse, Conversation, Document } from './types'
 import './App.css'
 
 const EXAMPLES = [
@@ -111,6 +111,7 @@ function App() {
   const [error, setError] = useState<string | null>(null)
   const [uploadError, setUploadError] = useState<string | null>(null)
   const [result, setResult] = useState<AskResponse | null>(null)
+  const [history, setHistory] = useState<Conversation[]>([])
   const [uploads, setUploads] = useState<Document[]>([])
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [progressStage, setProgressStage] = useState(-1)
@@ -141,8 +142,12 @@ function App() {
     setProgressState('working')
 
     try {
-      const data = await askQuestion(trimmed)
+      const data = await askQuestion(trimmed, history)
       setResult(data)
+      setHistory((previous) => [
+        ...previous,
+        { question: trimmed, answer: data.answer },
+      ])
       setProgressStage(RESEARCH_STAGES.length - 1)
       setProgressState('complete')
       requestAnimationFrame(() => {

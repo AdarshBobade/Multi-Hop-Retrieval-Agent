@@ -107,7 +107,7 @@ def check_groundedness(state, original_query, answer_text: str) -> GroundednessC
     before_sleep=before_sleep_log(logger, logging.WARNING),
     reraise=True,
 )
-def synthesize_answer(state , original_query):
+def synthesize_answer(state , query:str):
     logger.info("Synthesis started.")
 
     context = format_evidence(state.evidence)
@@ -116,7 +116,7 @@ def synthesize_answer(state , original_query):
 
     prompt = SYNTHESIS_USER_PROMPT.format(goal=state.plan.goal , 
                                         context=context ,
-                                        query=original_query.query)
+                                        query=query)
 
     logger.info("Sending prompt to LLM.")
     response = client.chat.completions.create(

@@ -393,7 +393,7 @@ SYNTHESIS_USER_PROMPT = """
                                 ## Retrieved Context
                                 {context}
                                 ---
-                                ## Original User Question
+                                ## Contextualized user question
                                 {query}
                                 ---
                                 Instructions:

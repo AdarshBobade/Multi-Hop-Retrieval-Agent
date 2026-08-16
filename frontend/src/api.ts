@@ -1,4 +1,4 @@
-import type { AskResponse, Document, UploadResponse } from './types'
+import type { AskResponse, Conversation, Document, UploadResponse } from './types'
 
 async function readError(response: Response): Promise<string> {
   if (response.status === 502 || response.status === 503 || response.status === 504) {
@@ -15,11 +15,11 @@ async function readError(response: Response): Promise<string> {
   return detail
 }
 
-export async function askQuestion(query: string): Promise<AskResponse> {
+export async function askQuestion(query: string, history: Conversation[]): Promise<AskResponse> {
   const response = await fetch('/ask', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ query }),
+    body: JSON.stringify({ query, history }),
   })
 
   if (!response.ok) {
