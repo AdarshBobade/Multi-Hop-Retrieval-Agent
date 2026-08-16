@@ -136,6 +136,24 @@ def delete_document(doc_id: str) -> int:
     invalidate_bm25_cache()
 
     collection.delete(ids=ids)
+
+    # Chroma stores the generated upload filename in the source metadata.
+    # Remove the corresponding PDF as well, while keeping the operation
+    # constrained to the configured upload directory.
+    for metadata in results.get("metadatas") or []:
+        source = metadata.get("source") if metadata else None
+        if source:
+            upload_path = (UPLOAD_DIR / Path(source).name).resolve()
+            upload_root = UPLOAD_DIR.resolve()
+            if upload_path.parent == upload_root and upload_path.is_file():
+                try:
+                    upload_path.unlink()
+                except OSError:
+                    # The index deletion is still authoritative if the file
+                    # has already been removed or cannot be deleted.
+                    pass
+            break
+
     return len(ids)
 
 
@@ -160,7 +178,10 @@ def list_documents() -> list[dict]:
                                                             "unknown"
                                                             ),
                                     "file_hash": metadata.get("file_hash"),
+                                    "chunks": 0,
                 }
+
+        documents[doc_id]["chunks"] += 1
 
     return list(documents.values())
 

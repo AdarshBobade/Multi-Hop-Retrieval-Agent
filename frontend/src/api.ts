@@ -1,4 +1,4 @@
-import type { AskResponse, UploadResponse } from './types'
+import type { AskResponse, Document, UploadResponse } from './types'
 
 async function readError(response: Response): Promise<string> {
   if (response.status === 502 || response.status === 503 || response.status === 504) {
@@ -51,4 +51,16 @@ export async function uploadPdf(file: File): Promise<UploadResponse> {
   }
 
   return response.json() as Promise<UploadResponse>
+}
+
+export async function listDocuments(): Promise<Document[]> {
+  const response = await fetch('/documents')
+  if (!response.ok) throw new Error(await readError(response))
+  const data = (await response.json()) as { documents?: Document[] }
+  return Array.isArray(data.documents) ? data.documents : []
+}
+
+export async function deleteDocument(docId: string): Promise<void> {
+  const response = await fetch(`/documents/${encodeURIComponent(docId)}`, { method: 'DELETE' })
+  if (!response.ok) throw new Error(await readError(response))
 }

@@ -2,7 +2,6 @@ from FlagEmbedding import FlagReranker
 from sentence_transformers import CrossEncoder
 from app_data.models import Evidence
 
-reranker = FlagReranker("BAAI/bge-reranker-v2-m3",use_fp16=False)
 reranker = CrossEncoder("cross-encoder/ms-marco-MiniLM-L2-v2")
 
 def rerank(query, evidence: list[Evidence] , top_k = 5) -> list[Evidence]:

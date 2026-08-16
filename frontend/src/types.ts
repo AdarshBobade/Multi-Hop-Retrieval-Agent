@@ -40,6 +40,15 @@ export type UploadResponse = {
   path: string
 }
 
+export type Document = {
+  doc_id: string
+  filename: string
+  file_hash?: string | null
+  chunks?: number
+  pages?: number
+  path?: string
+}
+
 export type AskError = {
   detail: string
 }

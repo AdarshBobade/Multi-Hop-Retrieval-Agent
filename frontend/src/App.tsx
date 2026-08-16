@@ -8,8 +8,8 @@ import {
   type ReactNode,
 } from 'react'
 import ReactMarkdown from 'react-markdown'
-import { askQuestion, uploadPdf } from './api'
-import type { AskResponse, UploadResponse } from './types'
+import { askQuestion, deleteDocument, uploadPdf } from './api'
+import type { AskResponse, Document } from './types'
 import './App.css'
 
 const EXAMPLES = [
@@ -111,7 +111,8 @@ function App() {
   const [error, setError] = useState<string | null>(null)
   const [uploadError, setUploadError] = useState<string | null>(null)
   const [result, setResult] = useState<AskResponse | null>(null)
-  const [uploads, setUploads] = useState<UploadResponse[]>([])
+  const [uploads, setUploads] = useState<Document[]>([])
+  const [deletingId, setDeletingId] = useState<string | null>(null)
   const [progressStage, setProgressStage] = useState(-1)
   const [progressState, setProgressState] = useState<ProgressState>('idle')
   const resultsRef = useRef<HTMLElement>(null)
@@ -185,6 +186,20 @@ function App() {
     } finally {
       setUploading(false)
       if (fileInputRef.current) fileInputRef.current.value = ''
+    }
+  }
+
+  async function handleDeleteDocument(document: Document) {
+    if (deletingId || busy) return
+    setDeletingId(document.doc_id)
+    setUploadError(null)
+    try {
+      await deleteDocument(document.doc_id)
+      setUploads((prev) => prev.filter((item) => item.doc_id !== document.doc_id))
+    } catch (err) {
+      setUploadError(err instanceof Error ? err.message : 'Could not delete document.')
+    } finally {
+      setDeletingId(null)
     }
   }
 
@@ -273,10 +288,22 @@ function App() {
                   <div>
                     <p className="upload-name">{item.filename}</p>
                     <p className="upload-meta">
-                      {item.pages} pages · {item.chunks} chunks · ingested
+                      {item.pages !== undefined ? `${item.pages} pages · ` : ''}
+                      {item.chunks !== undefined ? `${item.chunks} chunks · ` : ''}ingested
                     </p>
                   </div>
-                  <span className="upload-badge">Ready</span>
+                  <div className="upload-item-actions">
+                    <span className="upload-badge">Ready</span>
+                    <button
+                      type="button"
+                      className="remove-document"
+                      onClick={() => void handleDeleteDocument(item)}
+                      disabled={busy || deletingId !== null}
+                      aria-label={`Remove ${item.filename}`}
+                    >
+                      {deletingId === item.doc_id ? 'Removing…' : 'Remove'}
+                    </button>
+                  </div>
                 </li>
               ))}
             </ul>

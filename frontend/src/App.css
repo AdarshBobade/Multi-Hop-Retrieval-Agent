@@ -417,6 +417,32 @@ textarea {
   border: 1px solid rgba(155, 44, 44, 0.2);
 }
 
+.upload-item-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  flex-shrink: 0;
+}
+
+.remove-document {
+  border: 1px solid rgba(155, 44, 44, 0.25);
+  border-radius: 999px;
+  padding: 0.25rem 0.65rem;
+  background: transparent;
+  color: var(--danger);
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.remove-document:hover:not(:disabled) {
+  background: var(--danger-bg);
+}
+
+.remove-document:disabled {
+  opacity: 0.55;
+  cursor: wait;
+}
+
 .research-status {
   display: flex;
   align-items: center;

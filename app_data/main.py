@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app_data.agentic_loop import run_agent_loop
 from app_data.decomposition import planner
-from app_data.ingestion import ingest_upload
+from app_data.ingestion import ingest_upload , list_documents ,delete_document
 from app_data.models import Question
 from app_data.synthesis import synthesize_answer , check_groundedness
 
@@ -31,6 +31,17 @@ app.add_middleware(
 )
 
 logger = logging.getLogger(__name__)
+
+@app.get("/documents")
+def get_documents():
+    return {"documents": list_documents()}
+
+@app.delete("/documents/{doc_id}")
+def remove_document(doc_id: str):
+    deleted_count = delete_document(doc_id)
+    if deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Document not found.")
+    return {"message": "Document deleted.", "chunks_removed": deleted_count}
 
 
 @app.post("/ask")
