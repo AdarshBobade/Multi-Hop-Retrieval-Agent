@@ -4,7 +4,7 @@ import logging
 from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 
-
+from app_data.cotextualize import contextualize_query
 from app_data.agentic_loop import run_agent_loop
 from app_data.decomposition import planner
 from app_data.ingestion import ingest_upload , list_documents ,delete_document
@@ -47,7 +47,9 @@ def remove_document(doc_id: str):
 @app.post("/ask")
 async def ask(que: Question):
     try:
-        research_plan = planner(que.query)  # Returns an object of the class ResearchPlan
+
+        standalone_query = contextualize_query(query=que.query, history=que.history)
+        research_plan = planner(standalone_query)  # Returns an object of the class ResearchPlan
 
         state = await run_agent_loop(research_plan, que.query)
        

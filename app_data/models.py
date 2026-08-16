@@ -3,9 +3,15 @@ from typing import Any , Literal
 
 
 # Data Validation using Pydantic ->
+
+class Conversation(BaseModel):
+    question :str
+    answer :str
+
 class Question(BaseModel):
     query :str = Field(min_length=1 , max_length=300)
-
+    history : list[Conversation] = []
+    
     @field_validator("query")
     @classmethod
     def validate_query(cls, value: str):
@@ -15,6 +21,8 @@ class Question(BaseModel):
             raise ValueError("Query cannot be empty.")
 
         return value
+
+
 
 class ResearchTask(BaseModel):
     question : str

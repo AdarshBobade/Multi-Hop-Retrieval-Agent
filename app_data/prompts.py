@@ -566,3 +566,25 @@ GROUNDEDNESS_USER_PROMPT = """
 
                             Evaluate whether the generated answer is fully supported by the source context.
                             """
+
+
+CONEXTUALIZE_SYSTEM_PROMPT = """"   Given a conversation history and a follow-up question, your job is to rewrite the follow-up question into a fully standalone question that contains all necessary context from the conversation.
+
+                                    Rules:
+                                    - Do NOT answer the question. Only rewrite it.
+                                    - If the follow-up question is already standalone and doesn't rely on anything from the conversation history, return it completely unchanged.
+                                    - Resolve pronouns, implicit references, and vague phrases (e.g. "the second one", "that process", "what about X instead") into their explicit meaning based on the history.
+                                    - Respond with ONLY the rewritten question text. No explanation, no quotes, no extra formatting.
+                                    - Return only string.
+
+                                """
+
+CONEXTUALIZE_USER_PROMPT = """"
+                                Conversation history :
+                                {history}
+
+                                follow-up question:
+                                {query}
+
+                                Standalone question.
+                                """
