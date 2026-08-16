@@ -23,9 +23,9 @@ MAX_UPLOAD_BYTES = 25 * 1024 * 1024  # 25 MB
 
 
 # Chunking
-def chunk_text(text, chunk_size=200):
+def chunk_text(text, chunk_size=300):
     words = text.split()
-    overlap = 50  # Overlapping Chunking
+    overlap = 75  # Overlapping Chunking
     return [
         " ".join(words[i : i + chunk_size])
         for i in range(0, len(words), chunk_size - overlap)

@@ -367,6 +367,10 @@ SYNTHESIS_SYSTEM_PROMPT = """
                                 Your task is to answer the user's question using ONLY the evidence provided in the context.
                                 The evidence may come from uploaded documents or external web sources. Each evidence item has a unique citation ID such as E1, E2, E3, etc.
 
+                                Your task is to produce a comprehensive, accurate, well-structured answer
+                                to the user's contextualized research question using ONLY the evidence
+                                provided in the context.
+
                                 Follow these rules:
 
                                 1. Answer the user's question directly and clearly.
@@ -379,9 +383,38 @@ SYNTHESIS_SYSTEM_PROMPT = """
                                 7. Do not cite evidence merely because it is topically related. The cited evidence must actually support the claim.
                                 8. If the available evidence is insufficient to answer part of the question, clearly state that the available evidence does not provide enough information. Do not fill the gap using unsupported knowledge.
                                 9. When evidence from uploaded documents and web sources disagree, explicitly identify the disagreement and distinguish the sources rather than silently choosing one.
-                                10. Prefer precise, concise explanations over unnecessary detail.
+                                10. Prefer precise, comprehensive explanations. Include relevant detail
+                                    when it improves understanding, but avoid repetition and filler.
                                 11. Preserve important distinctions, uncertainty, and limitations present in the evidence.
                                 12. Do not include a separate references section. Citations in the form [E1], [E2], etc. are sufficient because the application will map these IDs to their corresponding sources.
+
+                                13. Provide a comprehensive, in-depth answer appropriate for a deep research assistant.
+
+                                14. Do not unnecessarily shorten the answer. Cover all important aspects of the
+                                research goal that are supported by the retrieved evidence.
+
+                                15. Explain the reasoning, relationships, mechanisms, causes, consequences,
+                                comparisons, and important details present in the evidence rather than merely
+                                listing facts.
+
+                                16. Organize the answer into clear sections and subsections when the topic
+                                contains multiple important aspects.
+
+                                17. For complex questions, synthesize information across multiple evidence
+                                items and explain how the pieces of evidence relate to each other.
+
+                                18. Prioritize depth and completeness over brevity, but do not add repetition,
+                                filler, or unsupported information.
+
+                                19. Every substantive factual claim must be supported by the retrieved
+                                evidence and cited appropriately.
+
+                                20. If the evidence supports useful nuance, limitations, exceptions, or
+                                contradictions, explain them rather than omitting them.
+
+                                21. The final answer should feel like a thorough research response, not a
+                                short factual response.
+
 
                                 Return only the final answer to the user's question.
                                 """
@@ -396,6 +429,32 @@ SYNTHESIS_USER_PROMPT = """
                                 ## Contextualized user question
                                 {query}
                                 ---
+                                ##Research Complexity:
+                                {complexity}
+
+                                Structure the response as follows when applicable:
+
+                                1. Direct answer or overview
+                                2. Key background and definitions
+                                3. Detailed explanation of the main mechanisms, causes, or relationships
+                                4. Important evidence and examples with inline citations
+                                5. Comparisons, consequences, limitations, or disagreements
+                                6. Final synthesis
+
+                                For simple questions, use only the sections that are relevant.
+                                Do not include empty or artificial sections.
+
+                                For questions requiring explanation, produce approximately 700 to 1200 words
+                                when the evidence supports that level of detail. Do not pad the answer with repetition
+                                or unsupported information.
+
+                                If the research complexity is "simple", still provide a complete explanation.
+                                Use several paragraphs when useful, explain the reasoning, and include relevant context,
+                                examples, causes, effects, limitations, and distinctions supported by the evidence.
+                                Avoid filler, but do not reduce the answer to a short summary.
+
+                                If the research complexity is "complex", provide a detailed, structured
+                                synthesis covering the major findings and their relationships.
                                 Instructions:
                                 1. Answer ONLY using the retrieved context.
                                 2. If the retrieved context does not contain enough information, explicitly state:
@@ -403,9 +462,12 @@ SYNTHESIS_USER_PROMPT = """
                                 3. Never use outside knowledge.
                                 4. Never hallucinate facts.
                                 5. If the retrieved evidence contains conflicting information, mention the conflict.
+                                
                                 6. Write a well-structured Markdown response.
-                                7. After the answer, provide a short Evidence Summary explaining which parts of the retrieved context were most useful.
-                                8. Confidence:
+
+                                8. After the main answer, provide a short evidence synthesis explaining how the cited
+                                    sources collectively support the conclusion. Do not merely repeat the answer.
+                                9. Confidence:
                                 - High → Context fully supports the answer.
                                 - Medium → Context partially supports the answer.
                                 - Low → Context is insufficient.
@@ -416,6 +478,11 @@ REFLECTION_SYSTEM_PROMPT = """
                                     You are an autonomous research reflection agent.
                                     Your job is NOT to answer the user's question.
                                     Your ONLY responsibility is to evaluate whether the currently retrieved evidence is sufficient to answer the research goal accurately and completely.
+
+                                    Do not mark the evidence sufficient merely because the question can be answered briefly.
+                                    Check whether the evidence covers the main aspects, context, causes, consequences,
+                                    comparisons, examples, and limitations required for a complete response.
+
                                     You will receive:
 
                                     • The original user question.
@@ -576,10 +643,70 @@ CONEXTUALIZE_SYSTEM_PROMPT = """"   Given a conversation history and a follow-up
                                     - Resolve pronouns, implicit references, and vague phrases (e.g. "the second one", "that process", "what about X instead") into their explicit meaning based on the history.
                                     - Respond with ONLY the rewritten question text. No explanation, no quotes, no extra formatting.
                                     - Return only string.
+                                    IMPORTANT FOLLOW-UP RULES:
+
+                                    1. The user's current query may be extremely short, such as:
+                                    - "why?"
+                                    - "how?"
+                                    - "conclusion"
+                                    - "concluding"
+                                    - "summarize"
+                                    - "and?"
+                                    - "what about this?"
+                                    - "the second one"
+                                    - "compare them"
+
+                                    2. Do NOT reinterpret a short follow-up as a new standalone question
+                                    unless the conversation history clearly indicates that it is a new topic.
+
+                                    3. Use the previous conversation to infer the user's intended action.
+
+                                    4. Preserve the user's intent and action.
+                                    Do not convert an instruction such as "conclude", "summarize",
+                                    "compare", or "explain" into a vocabulary/definition question.
+
+                                    5. For example:
+
+                                    Previous conversation:
+                                    User: Explain aerobic and anaerobic respiration.
+                                    Assistant: [discussion about their differences...]
+
+                                    Current query:
+                                    "concluding"
+
+                                    Correct contextualized query:
+                                    "Provide a conclusion summarizing the discussion about aerobic
+                                    and anaerobic respiration."
+
+                                    INCORRECT:
+                                    "What does the word 'concluding' mean?"
+
+                                    6. Another example:
+
+                                    Previous conversation:
+                                    User: Explain the proposed architecture.
+                                    Assistant: [architecture explanation...]
+
+                                    Current query:
+                                    "why?"
+
+                                    Correct:
+                                    "Why did the authors choose the proposed architecture?"
+
+                                    7. When the current query is an instruction or fragment, interpret it
+                                    as a continuation of the previous topic whenever possible.
 
                                 """
 
 CONEXTUALIZE_USER_PROMPT = """"
+                                Your task is NOT to define or explain the user's words.
+
+                                Your task is to transform the user's message into the
+                                question/request they intend to ask **in the context of
+                                the previous conversation**.
+
+                                The output must preserve the user's intended action.
+
                                 Conversation history :
                                 {history}
 

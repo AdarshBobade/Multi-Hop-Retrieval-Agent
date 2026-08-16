@@ -592,6 +592,52 @@ textarea {
   backdrop-filter: blur(10px);
 }
 
+.markdown-table-wrap {
+  width: 100%;
+  margin: 1rem 0;
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.7);
+}
+
+.markdown-table {
+  width: 100%;
+  min-width: 34rem;
+  border-collapse: collapse;
+  color: var(--ink-soft);
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.markdown-table th,
+.markdown-table td {
+  padding: 0.7rem 0.85rem;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+  vertical-align: top;
+}
+
+.markdown-table th p,
+.markdown-table td p {
+  margin: 0;
+}
+
+.markdown-table th {
+  background: rgba(11, 110, 99, 0.1);
+  color: var(--teal-deep);
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.markdown-table tbody tr:nth-child(even) {
+  background: rgba(11, 110, 99, 0.035);
+}
+
+.markdown-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
 .typewriter-cursor {
   display: inline-block;
   width: 0.55rem;

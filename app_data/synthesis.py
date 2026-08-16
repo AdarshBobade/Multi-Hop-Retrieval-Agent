@@ -2,7 +2,7 @@ import logging
 import json
 import re
 
-from app_data.config import groq_api
+from app_data.config import groq_api , llm_with_fallback
 from app_data.prompts import (
     SYNTHESIS_SYSTEM_PROMPT,
     SYNTHESIS_USER_PROMPT,
@@ -83,7 +83,7 @@ def check_groundedness(state, original_query, answer_text: str) -> GroundednessC
     )
 
     response = client.chat.completions.create(
-        model="llama-3.3-70b-versatile",
+        model="llama-3.1-8b-instant",
         messages=[
             {"role": "system", "content": GROUNDEDNESS_SYSTEM_PROMPT},
             {"role": "user", "content": prompt},
@@ -116,14 +116,20 @@ def synthesize_answer(state , query:str):
 
     prompt = SYNTHESIS_USER_PROMPT.format(goal=state.plan.goal , 
                                         context=context ,
-                                        query=query)
+                                        query=query,
+                                        complexity=state.complexity)
 
     logger.info("Sending prompt to LLM.")
-    response = client.chat.completions.create(
-        model="llama-3.3-70b-versatile",
-        messages=[{"role": "system", "content": SYNTHESIS_SYSTEM_PROMPT},
-                {"role": "user", "content": prompt}]
-    )
+    response = llm_with_fallback(
+                                    messages=[
+                                        {"role": "system", "content": SYNTHESIS_SYSTEM_PROMPT},
+                                        {"role": "user", "content": prompt}
+                                    ],
+                                    primary_model="openai/gpt-oss-120b",
+                                    fallback_model="qwen/qwen3.6-27b",
+                                    reasoning_effort="medium",
+                                    max_tokens=3000
+                                )
     logger.info("Synthesis completed.")
 
     return response

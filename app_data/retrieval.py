@@ -65,7 +65,7 @@ def reciprocal_rank_fusion(result_lists: list[list[Evidence]], k: int = 60) -> l
     ranked_keys = sorted(scores.keys(), key=lambda key: scores[key], reverse=True)
     return [items[key] for key in ranked_keys]
 
-def retrieve_hybrid_local(query: str, retrieval_k:int= 10 , final_k :int= 5) -> list[Evidence]:
+def retrieve_hybrid_local(query: str, retrieval_k:int= 15 , final_k :int= 8) -> list[Evidence]:
     semantic_results = retrieve(query, k_closest=retrieval_k)
     bm25_results = retrieve_bm25(query, k_closest=retrieval_k)
     fused = reciprocal_rank_fusion([semantic_results, bm25_results], k=60)

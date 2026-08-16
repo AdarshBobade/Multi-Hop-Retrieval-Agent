@@ -31,6 +31,81 @@ const RESEARCH_STAGES = [
 
 type ProgressState = 'idle' | 'working' | 'complete' | 'error'
 
+function parseTableRow(line: string): string[] | null {
+  if (!line.includes('|')) return null
+  const cells = line.trim().replace(/^\|/, '').replace(/\|$/, '').split('|').map((cell) => cell.trim())
+  return cells.length >= 2 ? cells : null
+}
+
+function isTableSeparator(line: string) {
+  const cells = parseTableRow(line)
+  return Boolean(cells && cells.every((cell) => /^:?-{3,}:?$/.test(cell)))
+}
+
+function MarkdownTableCell({ content }: { content: string }) {
+  return <ReactMarkdown>{content}</ReactMarkdown>
+}
+
+function MarkdownTable({ rows }: { rows: string[][] }) {
+  const header = rows[0] ?? []
+  return (
+    <div className="markdown-table-wrap">
+      <table className="markdown-table">
+        <thead>
+          <tr>{header.map((cell, index) => <th key={index}><MarkdownTableCell content={cell} /></th>)}</tr>
+        </thead>
+        <tbody>
+          {rows.slice(2).map((row, rowIndex) => (
+            <tr key={rowIndex}>
+              {header.map((_, columnIndex) => (
+                <td key={columnIndex}>
+                  <MarkdownTableCell content={row[columnIndex] ?? ''} />
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
+function MarkdownContent({ text }: { text: string }) {
+  const lines = text.split(/\r?\n/)
+  const blocks: ReactNode[] = []
+  let markdownLines: string[] = []
+  let index = 0
+
+  const flushMarkdown = () => {
+    if (markdownLines.length > 0) {
+      blocks.push(<ReactMarkdown key={`markdown-${blocks.length}`}>{markdownLines.join('\n')}</ReactMarkdown>)
+      markdownLines = []
+    }
+  }
+
+  while (index < lines.length) {
+    const header = parseTableRow(lines[index])
+    if (header && index + 1 < lines.length && isTableSeparator(lines[index + 1])) {
+      const rows = [header, parseTableRow(lines[index + 1]) as string[]]
+      index += 2
+      while (index < lines.length) {
+        const row = parseTableRow(lines[index])
+        if (!row) break
+        rows.push(row)
+        index += 1
+      }
+      flushMarkdown()
+      blocks.push(<MarkdownTable key={`table-${blocks.length}`} rows={rows} />)
+      continue
+    }
+    markdownLines.push(lines[index])
+    index += 1
+  }
+
+  flushMarkdown()
+  return <>{blocks}</>
+}
+
 function useTypewriter(text: string, charactersPerSecond = 90) {
   const [visibleLength, setVisibleLength] = useState(0)
 
@@ -391,7 +466,7 @@ function App() {
           </div>
 
           <article className="answer prose">
-            <ReactMarkdown>{typedAnswer.text}</ReactMarkdown>
+            <MarkdownContent text={typedAnswer.text} />
             {typedAnswer.isTyping && <span className="typewriter-cursor" aria-hidden="true" />}
           </article>
 

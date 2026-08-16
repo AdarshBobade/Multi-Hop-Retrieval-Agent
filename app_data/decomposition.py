@@ -32,7 +32,7 @@ def planner(query:str) -> ResearchPlan:
 
     user_prompt = PLANNER_USER_PROMPT.format(query=query)
     response = client.chat.completions.create(
-                    model="llama-3.3-70b-versatile",
+                    model="llama-3.1-8b-instant",
                     messages=[
                         {"role": "system", "content": PLANNER_SYSTEM_PROMPT},
                         {"role": "user" , "content" : user_prompt}]

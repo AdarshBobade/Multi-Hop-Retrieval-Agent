@@ -165,7 +165,7 @@ This allows retrieval depth to depend on the information actually required by th
 ### LLM
 
 - Groq API
-- Llama 3.3 70B Versatile
+- openai/gpt-oss-120b
 
 ### Frontend
 
