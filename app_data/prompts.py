@@ -656,6 +656,41 @@ CONEXTUALIZE_SYSTEM_PROMPT = """"   Given a conversation history and a follow-up
                                     - "the second one"
                                     - "compare them"
 
+
+                                    When the current message is ambiguous in isolation, use the previous
+                                    conversation to determine its intended meaning.
+
+                                    PRESERVE THE USER'S INTENT.
+
+                                    Do NOT interpret an action word as a request for its dictionary meaning
+                                    unless the user explicitly asks for a definition.
+
+                                    For example:
+
+                                    Previous discussion:
+                                    User: Explain aerobic and anaerobic respiration.
+                                    Assistant: [discussion about cellular respiration]
+
+                                    Current message:
+                                    "concluding"
+
+                                    Interpretation:
+                                    "Provide a conclusion based on our discussion of aerobic and anaerobic
+                                    respiration."
+
+                                    NOT:
+                                    "What does the word 'concluding' mean?"
+
+                                    Another example:
+
+                                    Current message:
+                                    "why?"
+
+                                    Interpretation:
+                                    "Why does aerobic respiration produce more ATP than anaerobic respiration?"
+
+                                    NOT:
+                                    "What is the meaning of the word why?"
                                     2. Do NOT reinterpret a short follow-up as a new standalone question
                                     unless the conversation history clearly indicates that it is a new topic.
 

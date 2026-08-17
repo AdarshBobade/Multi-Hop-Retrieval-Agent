@@ -83,7 +83,7 @@ def check_groundedness(state, question:str, answer_text: str) -> GroundednessChe
     )
 
     response = client.chat.completions.create(
-        model="llama-3.1-8b-instant",
+        model="openai/gpt-oss-20b",
         messages=[
             {"role": "system", "content": GROUNDEDNESS_SYSTEM_PROMPT},
             {"role": "user", "content": prompt},
@@ -126,7 +126,7 @@ def synthesize_answer(state , query:str):
                                         {"role": "user", "content": prompt}
                                     ],
                                     primary_model="openai/gpt-oss-120b",
-                                    fallback_model="qwen/qwen3.6-27b",
+                                    fallback_model="openai/gpt-oss-20b",
                                     reasoning_effort="medium",
                                     max_tokens=3000
                                 )
