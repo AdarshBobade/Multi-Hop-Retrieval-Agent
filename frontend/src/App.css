@@ -357,6 +357,55 @@ textarea {
   cursor: not-allowed;
 }
 
+.research-mode-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  align-items: center;
+}
+
+.mode-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 0.42rem 0.72rem;
+  background: rgba(255, 255, 255, 0.62);
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.82rem;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
+}
+
+.mode-chip:hover:not(:disabled) {
+  border-color: rgba(11, 110, 99, 0.45);
+  color: var(--teal-deep);
+}
+
+.mode-chip.is-selected {
+  border-color: rgba(11, 110, 99, 0.5);
+  background: rgba(11, 110, 99, 0.1);
+  color: var(--teal-deep);
+  font-weight: 600;
+}
+
+.mode-chip:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.mode-icon {
+  width: 0.95rem;
+  height: 0.95rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
 .spinner {
   width: 0.9rem;
   height: 0.9rem;

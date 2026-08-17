@@ -4,6 +4,20 @@ from app_data.web_search import web_search
 from rank_bm25 import BM25Okapi
 from app_data.reranking import rerank
 import asyncio
+from collections import Counter
+import logging
+import re
+
+logger = logging.getLogger(__name__)
+
+WEB_QUERY_STOPWORDS = {
+    "about", "after", "also", "been", "before", "being", "between",
+    "context", "could", "document", "documents", "from", "given", "have",
+    "into", "look", "more", "most", "other", "provided", "recent",
+    "research", "should", "studies", "study", "than", "that", "their",
+    "there", "these", "they", "this", "through", "using", "what", "when",
+    "where", "which", "while", "with", "would", "your",
+}
 
 bm25_cache = None
 
@@ -137,6 +151,35 @@ async def web_search_async(query: str, search_depth: str = "basic", topic: str =
     )
 
 
+def build_contextual_web_query(query: str, local_evidence: list[Evidence]) -> str:
+    """Enrich a vague web request with topic terms found in uploaded PDFs."""
+    document_text = " ".join(
+        evidence.content[:2000]
+        for evidence in local_evidence[:5]
+        if evidence.content
+    )
+
+    if not document_text:
+        return query
+
+    words = re.findall(r"[a-zA-Z][a-zA-Z-]{3,}", document_text.lower())
+    term_counts = Counter(
+        word for word in words
+        if word not in WEB_QUERY_STOPWORDS and not word.isdigit()
+    )
+    topic_terms = [term for term, _ in term_counts.most_common(8)]
+
+    if not topic_terms:
+        return query
+
+    enriched_query = (
+        f"{query}. Find recent peer-reviewed studies and experimental findings "
+        f"about: {' '.join(topic_terms)}"
+    )
+    logger.info("Context-enriched web query: %s", enriched_query)
+    return enriched_query
+
+
 async def retrieve_for_task(task: ResearchTask) -> list[Evidence]:
 
     if task.source == "local":
@@ -150,14 +193,17 @@ async def retrieve_for_task(task: ResearchTask) -> list[Evidence]:
         )
 
     if task.source == "hybrid":
-
-        local_results, web_results = await asyncio.gather(
-            retrieve_hybrid_local_async(task.question),
-            web_search_async(
-                query=task.question,
-                search_depth=task.search_depth,
-                topic="general",
-            )
+        # The local evidence supplies the subject when the user says things
+        # like "find recent studies about the attached PDF" without naming it.
+        local_results = await retrieve_hybrid_local_async(task.question)
+        contextual_web_query = build_contextual_web_query(
+            task.question,
+            local_results,
+        )
+        web_results = await web_search_async(
+            query=contextual_web_query,
+            search_depth=task.search_depth,
+            topic="general",
         )
 
         return local_results + web_results

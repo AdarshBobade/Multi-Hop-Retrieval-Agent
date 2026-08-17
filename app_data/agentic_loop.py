@@ -14,7 +14,18 @@ def count_calls(task_source: str) -> tuple[int, int]:
         return 1, 1
     return 0, 0
 
-async def run_agent_loop(research_plan , original_query):
+async def run_agent_loop(research_plan, original_query, web_search: bool = False, deep_research: bool = False):
+
+    # UI-selected modes take precedence over the planner's source choice.
+    # With no explicit mode selected, retain the existing planner-driven behavior.
+    selected_source = None
+    if web_search:
+        # Web search is additive: always retain uploaded-PDF context as well.
+        selected_source = "hybrid"
+    elif deep_research:
+        selected_source = "local"
+
+    search_depth = "advanced" if deep_research else "basic"
 
     # Complexity Routing
     complexity = research_plan.complexity.lower()
@@ -27,10 +38,16 @@ async def run_agent_loop(research_plan , original_query):
                 question=original_query,
                 purpose="Answer the user's question",
                 priority=1,
-                source=research_plan.retrieval_mode,
-                search_depth="basic"
+                source=selected_source or research_plan.retrieval_mode,
+                search_depth=search_depth
                 
             )
+        ]
+
+    if selected_source:
+        initial_tasks = [
+            task.model_copy(update={"source": selected_source, "search_depth": search_depth})
+            for task in initial_tasks
         ]
 
 
@@ -41,7 +58,7 @@ async def run_agent_loop(research_plan , original_query):
                                     complexity=complexity,
                                     visited_queries = set(),
                                     hop_cnt = 0 ,
-                                    max_hops = 3,
+                                    max_hops = 5 if deep_research else 3,
                                     research_trail = [],
                                     confidence = 0.0,
                                     llm_calls  = 0,
@@ -118,7 +135,7 @@ async def run_agent_loop(research_plan , original_query):
              break
 
         # No retrieval source specified
-        if not hop_decision.source:
+        if not selected_source and not hop_decision.source:
             break
 
         state.hop_cnt += 1
@@ -130,8 +147,8 @@ async def run_agent_loop(research_plan , original_query):
         next_task = ResearchTask(question=next_query,
                                 purpose=(hop_decision.missing_info or "Retrieve additional evidence"),
                                 priority=1,
-                                source=hop_decision.source,
-                                search_depth="basic"
+                                source=selected_source or hop_decision.source,
+                                search_depth=search_depth
                                 
                             )
         

@@ -34,6 +34,12 @@ export type AskResponse = {
   retrieval_calls: number
   web_search_calls: number
   llm_calls: number
+  document_evidence_count?: number
+  web_evidence_count?: number
+  research_mode?: {
+    web_search: boolean
+    deep_research: boolean
+  }
 }
 
 export type UploadResponse = {

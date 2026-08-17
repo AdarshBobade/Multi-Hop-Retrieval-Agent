@@ -1,5 +1,4 @@
-from groq import Groq
-from app_data.config import groq_api
+from app_data.config import llm_with_fallback
 from app_data.prompts import PLANNER_SYSTEM_PROMPT , PLANNER_USER_PROMPT
 from app_data.models import ResearchPlan, ResearchTask
 from tenacity import (retry, stop_after_attempt, wait_exponential, before_sleep_log)
@@ -10,8 +9,6 @@ import json
 
 logger = logging.getLogger(__name__)
 
-
-client = Groq(api_key=groq_api)
 
 # Breaking the user query into sub_questions
 
@@ -31,8 +28,11 @@ def planner(query:str) -> ResearchPlan:
     logger.info(f"Query Length: {len(query.split())} words")
 
     user_prompt = PLANNER_USER_PROMPT.format(query=query)
-    response = client.chat.completions.create(
-                    model="openai/gpt-oss-20b",
+    response = llm_with_fallback(
+                    primary_model="openai/gpt-oss-20b",
+                    fallback_model="openai/gpt-oss-20b",
+                    max_tokens=800,
+                    fallback_max_tokens=600,
                     messages=[
                         {"role": "system", "content": PLANNER_SYSTEM_PROMPT},
                         {"role": "user" , "content" : user_prompt}]

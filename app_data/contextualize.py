@@ -1,13 +1,9 @@
 from app_data.models import Conversation
-from app_data.config import groq_api
+from app_data.config import llm_with_fallback
 from app_data.prompts import CONEXTUALIZE_SYSTEM_PROMPT , CONEXTUALIZE_USER_PROMPT
 from app_data.logging_config import timer 
 from tenacity import (retry, stop_after_attempt, wait_exponential, before_sleep_log)
 import logging
-from groq import Groq
-
-
-client = Groq(api_key=groq_api)
 logger = logging.getLogger(__name__)
 
 
@@ -30,8 +26,11 @@ def contextualize_query(query:str , history:list[Conversation]):
 
     logger.info("Retrieving the context from the history of the conversation:")
 
-    response = client.chat.completions.create(
-        model="openai/gpt-oss-20b",
+    response = llm_with_fallback(
+        primary_model="openai/gpt-oss-20b",
+        fallback_model="openai/gpt-oss-20b",
+        max_tokens=350,
+        fallback_max_tokens=250,
         messages=[
             {"role": "system", "content": CONEXTUALIZE_SYSTEM_PROMPT},
             {"role": "user", "content": prompt}

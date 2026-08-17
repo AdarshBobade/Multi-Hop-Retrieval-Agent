@@ -29,19 +29,33 @@ def web_search(query:str,
         raise 
 
     results = []
+    fallback_results = []
 
     for result in web_response.get("results", []):
-
-        if result.get("score", 0) < 0.4:
+        if not result.get("content"):
             continue
 
-        results.append({
+        normalized_result = {
             "title": result.get("title"),
             "url": result.get("url"),
             "content": result.get("content"),
             "score": result.get("score", 0.0),
             "published_date": result.get("published_date")
-        })
+        }
+
+        fallback_results.append(normalized_result)
+        if normalized_result["score"] >= 0.4:
+            results.append(normalized_result)
+
+    # Broad/contextual questions can receive useful pages below the strict
+    # relevance threshold. Keep the best few rather than returning no web
+    # evidence at all.
+    if not results:
+        results = sorted(
+            fallback_results,
+            key=lambda item: item["score"],
+            reverse=True,
+        )[:3]
 
     evidence = [ tavily_to_evidence(result ,query) for result in results]
     return evidence

@@ -180,6 +180,8 @@ function TrailStepCard({ step, index }: { step: Record<string, unknown>; index: 
 
 function App() {
   const [query, setQuery] = useState('')
+  const [webSearch, setWebSearch] = useState(false)
+  const [deepResearch, setDeepResearch] = useState(false)
   const [loading, setLoading] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [dragOver, setDragOver] = useState(false)
@@ -217,7 +219,7 @@ function App() {
     setProgressState('working')
 
     try {
-      const data = await askQuestion(trimmed, history)
+      const data = await askQuestion(trimmed, history, { webSearch, deepResearch })
       setResult(data)
       setHistory((previous) => [
         ...previous,
@@ -417,6 +419,34 @@ function App() {
               )}
             </button>
           </div>
+          <div className="research-mode-options" role="group" aria-label="Research modes">
+            <button
+              type="button"
+              className={`mode-chip${webSearch ? ' is-selected' : ''}`}
+              aria-pressed={webSearch}
+              onClick={() => setWebSearch((selected) => !selected)}
+              disabled={busy}
+            >
+              <svg className="mode-icon" viewBox="0 0 24 24" aria-hidden="true">
+                <circle cx="12" cy="12" r="9" />
+                <path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18" />
+              </svg>
+              Web search
+            </button>
+            <button
+              type="button"
+              className={`mode-chip${deepResearch ? ' is-selected' : ''}`}
+              aria-pressed={deepResearch}
+              onClick={() => setDeepResearch((selected) => !selected)}
+              disabled={busy}
+            >
+              <svg className="mode-icon" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="m12 3 1.5 4.5L18 9l-4.5 1.5L12 15l-1.5-4.5L6 9l4.5-1.5L12 3Z" />
+                <path d="m19 15 .75 2.25L22 18l-2.25.75L19 21l-.75-2.25L16 18l2.25-.75L19 15Z" />
+              </svg>
+              Deep research
+            </button>
+          </div>
         </form>
 
         <div className="examples">
@@ -537,6 +567,8 @@ function App() {
             <ul className="stats-list">
               <li>Retrieval calls: <strong>{result.retrieval_calls}</strong></li>
               <li>Web search calls: <strong>{result.web_search_calls}</strong></li>
+              <li>PDF evidence: <strong>{result.document_evidence_count ?? 0}</strong></li>
+              <li>Web evidence: <strong>{result.web_evidence_count ?? 0}</strong></li>
               <li>LLM calls: <strong>{result.llm_calls}</strong></li>
             </ul>
           </section>

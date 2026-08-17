@@ -21,7 +21,7 @@ tavily_api = os.getenv("TAVILY_API_KEY")
 
 logger = logging.getLogger(__name__)
 
-from groq import Groq, RateLimitError
+from groq import APIStatusError, Groq, RateLimitError
 
 
 client = Groq(api_key=groq_api)
@@ -32,7 +32,8 @@ def llm_with_fallback(
                         primary_model,
                         fallback_model=None,
                         reasoning_effort=None,
-                        max_tokens=3000
+                        max_tokens=1200,
+                        fallback_max_tokens=None,
                     ):
     try:
         kwargs = {
@@ -46,16 +47,28 @@ def llm_with_fallback(
 
         return client.chat.completions.create(**kwargs)
 
-    except RateLimitError:
-        if fallback_model is None:
+    except (RateLimitError, APIStatusError) as exc:
+        status_code = getattr(exc, "status_code", None)
+        error_text = str(exc).lower()
+        is_capacity_error = (
+            isinstance(exc, RateLimitError)
+            or status_code in {413, 429}
+            or "rate_limit_exceeded" in error_text
+            or "request too large" in error_text
+            or "tokens per minute" in error_text
+        )
+
+        if fallback_model is None or not is_capacity_error:
             raise
 
         logger.warning(
-            f"{primary_model} hit rate limit. "
-            f"Switching to {fallback_model}."
+            "%s exceeded its token/rate capacity. Switching to %s.",
+            primary_model,
+            fallback_model,
         )
 
         return client.chat.completions.create(
             model=fallback_model,
-            messages=messages
+            messages=messages,
+            max_tokens=fallback_max_tokens or min(max_tokens, 900),
         )

@@ -51,7 +51,12 @@ async def ask(que: Question):
         standalone_query = contextualize_query(query=que.query, history=que.history)
         research_plan = planner(standalone_query)  # Returns an object of the class ResearchPlan
 
-        state = await run_agent_loop(research_plan, standalone_query)
+        state = await run_agent_loop(
+            research_plan,
+            standalone_query,
+            web_search=que.web_search,
+            deep_research=que.deep_research,
+        )
        
         response = synthesize_answer(state , standalone_query)
         answer_text = response.choices[0].message.content
@@ -83,6 +88,16 @@ async def ask(que: Question):
             "retrieval_calls": state.retrieval_calls,
             "web_search_calls": state.web_search_calls,
             "llm_calls": state.llm_calls,
+            "document_evidence_count": sum(
+                evidence.source_type == "document" for evidence in state.evidence
+            ),
+            "web_evidence_count": sum(
+                evidence.source_type == "web" for evidence in state.evidence
+            ),
+            "research_mode": {
+                "web_search": que.web_search,
+                "deep_research": que.deep_research,
+            },
         }
 
     except Exception as e:

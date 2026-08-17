@@ -15,11 +15,20 @@ async function readError(response: Response): Promise<string> {
   return detail
 }
 
-export async function askQuestion(query: string, history: Conversation[]): Promise<AskResponse> {
+export async function askQuestion(
+  query: string,
+  history: Conversation[],
+  options: { webSearch: boolean; deepResearch: boolean },
+): Promise<AskResponse> {
   const response = await fetch('/ask', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ query, history }),
+    body: JSON.stringify({
+      query,
+      history,
+      web_search: options.webSearch,
+      deep_research: options.deepResearch,
+    }),
   })
 
   if (!response.ok) {

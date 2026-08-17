@@ -2,20 +2,18 @@ import logging
 import json
 import re
 
-from app_data.config import groq_api , llm_with_fallback
+from app_data.config import llm_with_fallback
 from app_data.prompts import (
     SYNTHESIS_SYSTEM_PROMPT,
     SYNTHESIS_USER_PROMPT,
     GROUNDEDNESS_SYSTEM_PROMPT,
     GROUNDEDNESS_USER_PROMPT,
 )
-from groq import Groq
 from tenacity import (retry, stop_after_attempt, wait_exponential, before_sleep_log)
 from app_data.logging_config import timer
 from app_data.models import GroundednessCheck
 from app_data.evidence_format import format_evidence
 
-client = Groq(api_key=groq_api)
 logger = logging.getLogger(__name__)
 
 
@@ -74,7 +72,12 @@ def _parse_groundedness_response(raw_response: str | None) -> GroundednessCheck:
 def check_groundedness(state, question:str, answer_text: str) -> GroundednessCheck:
     logger.info("Groundedness check started.")
 
-    context = format_evidence(state.evidence)
+    context = format_evidence(
+        state.evidence,
+        max_items=10,
+        max_chars_per_item=1200,
+        max_total_chars=10000,
+    )
 
     prompt = GROUNDEDNESS_USER_PROMPT.format(
         question=question,
@@ -82,8 +85,11 @@ def check_groundedness(state, question:str, answer_text: str) -> GroundednessChe
         context=context
     )
 
-    response = client.chat.completions.create(
-        model="openai/gpt-oss-20b",
+    response = llm_with_fallback(
+        primary_model="openai/gpt-oss-20b",
+        fallback_model="openai/gpt-oss-20b",
+        max_tokens=500,
+        fallback_max_tokens=350,
         messages=[
             {"role": "system", "content": GROUNDEDNESS_SYSTEM_PROMPT},
             {"role": "user", "content": prompt},
@@ -110,7 +116,12 @@ def check_groundedness(state, question:str, answer_text: str) -> GroundednessChe
 def synthesize_answer(state , query:str):
     logger.info("Synthesis started.")
 
-    context = format_evidence(state.evidence)
+    context = format_evidence(
+        state.evidence,
+        max_items=10,
+        max_chars_per_item=1400,
+        max_total_chars=12000,
+    )
 
     logger.info(f"Synthesizing answer, context size: {len(context.split())} words")
 
@@ -128,7 +139,8 @@ def synthesize_answer(state , query:str):
                                     primary_model="openai/gpt-oss-120b",
                                     fallback_model="openai/gpt-oss-20b",
                                     reasoning_effort="medium",
-                                    max_tokens=3000
+                                    max_tokens=1800,
+                                    fallback_max_tokens=1200,
                                 )
     logger.info("Synthesis completed.")
 

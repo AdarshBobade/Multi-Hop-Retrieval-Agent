@@ -1,11 +1,15 @@
 from app_data.models import Evidence
 
-def format_evidence(evidence : list[Evidence]) -> str:
+def format_evidence(
+    evidence: list[Evidence],
+    max_items: int = 10,
+    max_chars_per_item: int = 1400,
+    max_total_chars: int = 12000,
+) -> str:
     formatted = []
+    total_chars = 0
 
-    
-
-    for item in evidence:
+    for item in evidence[:max_items]:
 
         
         
@@ -35,11 +39,15 @@ def format_evidence(evidence : list[Evidence]) -> str:
             *[line for line in metadata if line],
             "",
             "Content:",
-            item.content
+            item.content[:max_chars_per_item]
         ]
 
-       
-
-        formatted.append("\n".join(block))
+        formatted_block = "\n".join(block)
+        remaining_chars = max_total_chars - total_chars
+        if remaining_chars <= 0:
+            break
+        formatted_block = formatted_block[:remaining_chars]
+        formatted.append(formatted_block)
+        total_chars += len(formatted_block)
 
     return "\n\n".join(formatted)

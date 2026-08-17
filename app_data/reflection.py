@@ -1,6 +1,5 @@
 from app_data.models import HopDecision , ResearchState
-from groq import Groq
-from app_data.config import groq_api
+from app_data.config import llm_with_fallback
 from app_data.prompts import REFLECTION_SYSTEM_PROMPT , REFLECTION_USER_PROMPT
 from tenacity import (retry, stop_after_attempt, wait_exponential, before_sleep_log)
 from app_data.logging_config import timer
@@ -8,8 +7,6 @@ from app_data.evidence_format import format_evidence
 import logging
 import re
 import json
-
-client = Groq(api_key=groq_api)
 
 logger = logging.getLogger(__name__)
 
@@ -52,7 +49,12 @@ def reflect(state : ResearchState) -> HopDecision:
                 
         try :
             logger.info("Sending reflection request to LLM.")
-            context = format_evidence(state.evidence)
+            context = format_evidence(
+                state.evidence,
+                max_items=8,
+                max_chars_per_item=1000,
+                max_total_chars=7000,
+            )
             
             logger.info(f"Context Size: {len(context.split())} words")
 
@@ -65,8 +67,11 @@ def reflect(state : ResearchState) -> HopDecision:
                                                         context=context
                                                         )
 
-            response = client.chat.completions.create(
-                        model="openai/gpt-oss-20b",
+            response = llm_with_fallback(
+                        primary_model="openai/gpt-oss-20b",
+                        fallback_model="openai/gpt-oss-20b",
+                        max_tokens=500,
+                        fallback_max_tokens=350,
                         messages=[  {"role": "system", "content": REFLECTION_SYSTEM_PROMPT},
                                     {"role": "user", "content": user_prompt} ]
                                     )
