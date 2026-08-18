@@ -6,6 +6,13 @@ import chromadb
 from chromadb.utils.embedding_functions import SentenceTransformerEmbeddingFunction
 from pypdf import PdfReader
 
+# File config
+UPLOAD_DIR = Path("data/uploads")
+UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+
+ALLOWED_EXTENSIONS = {".pdf"}
+MAX_UPLOAD_BYTES = 25 * 1024 * 1024  # 25 MB
+
 # Chroma
 client = chromadb.PersistentClient(path="./chroma_db")
 embed_fn = SentenceTransformerEmbeddingFunction(
@@ -14,12 +21,36 @@ embed_fn = SentenceTransformerEmbeddingFunction(
 
 collection = client.get_or_create_collection("docs", embedding_function=embed_fn)
 
-# File config
-UPLOAD_DIR = Path("data/uploads")
-UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
-ALLOWED_EXTENSIONS = {".pdf"}
-MAX_UPLOAD_BYTES = 25 * 1024 * 1024  # 25 MB
+def reset_session_database() -> None:
+    """
+    Clear all indexed documents and uploaded PDFs for a fresh application session.
+
+    This is called once when the FastAPI application starts, not on every upload.
+    """
+    global collection
+
+    try:
+        client.delete_collection("docs")
+    except Exception:
+        # The collection may not exist on the first run.
+        pass
+
+    collection = client.get_or_create_collection(
+        "docs",
+        embedding_function=embed_fn,
+    )
+
+    from app_data.retrieval import invalidate_bm25_cache
+    invalidate_bm25_cache()
+
+    upload_root = UPLOAD_DIR.resolve()
+    for upload_file in upload_root.iterdir():
+        if upload_file.is_file():
+            try:
+                upload_file.unlink()
+            except OSError:
+                pass
 
 
 # Chunking
@@ -31,7 +62,7 @@ def chunk_text(text, chunk_size=300):
         for i in range(0, len(words), chunk_size - overlap)
     ]
 
-# File hash 
+# File hash
 def calculate_file_hash(content: bytes) -> str:
     """
     SHA256 hash used to detect duplicate uploads.
@@ -43,7 +74,7 @@ def calculate_file_hash(content: bytes) -> str:
 def ingest_pdf(path: str | Path,
                file_hash: str | None = None,
                original_filename: str | None = None) -> dict:
-    
+
     path = Path(path)
     reader = PdfReader(str(path))
 
@@ -187,8 +218,6 @@ def list_documents() -> list[dict]:
 
 
 
-
-
 def ingest_upload(filename: str, content: bytes) -> dict:
     file_hash = calculate_file_hash(content)
 
@@ -240,7 +269,7 @@ def ingest_upload(filename: str, content: bytes) -> dict:
     result = ingest_pdf(path=path,
                         file_hash=file_hash,
                         original_filename=filename)
-    
+
     result["path"] = str(path)
     result["already_exists"] = False
 
