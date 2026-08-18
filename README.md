@@ -1,207 +1,146 @@
 # Multi-Hop Retrieval Agent
 
-An agentic Retrieval-Augmented Generation (RAG) system that decomposes complex questions, retrieves evidence iteratively, evaluates whether the available evidence is sufficient, and generates grounded answers from uploaded documents.
+> An agentic RAG system that **plans, retrieves, reflects, verifies, and synthesizes** instead of assuming one retrieval pass is enough.
+
+[![Python](https://img.shields.io/badge/Python-3.11%2B-blue?logo=python)](https://www.python.org/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-backend-009688?logo=fastapi)](https://fastapi.tiangolo.com/)
+[![React](https://img.shields.io/badge/React-frontend-61DAFB?logo=react)](https://react.dev/)
+[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
 ## Overview
 
-Traditional RAG typically follows a fixed pipeline:
+Most RAG systems use a fixed pipeline:
 
-`Query → Retrieval → Generation`
+```text
+Query → Retrieve Top-K → Generate Answer
+```
 
-This project extends that workflow with an adaptive research loop:
+That works well for straightforward questions, but complex questions often require evidence that is distributed across documents, concepts, or sources.
 
-`Query → Planning → Retrieval → Reflection → Additional Retrieval (if required) → Synthesis → Groundedness Verification`
+This project treats retrieval as an **adaptive research process**. An LLM creates a research plan, the agent retrieves evidence, reflects on what is still missing, performs additional hops when necessary, and finally verifies the generated answer against the evidence.
 
-The agent maintains a research state across retrieval hops and decides whether additional evidence is required before generating the final answer.
+```text
+User Query
+    ↓
+Contextualization
+    ↓
+Planning & Routing
+    ↓
+Initial Retrieval ───────────────┐
+    ↓                            │
+Reflection                       │ insufficient
+    ├── sufficient ──────────────┤
+    ↓                            ↓
+Synthesis ←────────────── Next Query / New Hop
+    ↓
+Groundedness Verification
+    ↓
+Cited Answer + Research Trail
+```
 
-## Key Features
+## What Makes It Different From Vanilla RAG?
 
-- LLM-based query planning and decomposition
-- Complexity-based routing for simple and complex queries
-- Multi-hop adaptive retrieval
-- ChromaDB vector search with embedding-based retrieval
-- Parallel retrieval of independent sub-questions using `asyncio`
-- Pydantic validation for API requests and structured LLM outputs
-- Retry and exponential backoff for LLM calls
-- Bounded agent execution with maximum hop limits
-- Query tracking and duplicate prevention
-- Research-trail and execution-metric tracking
-- LLM-based answer synthesis
-- Groundedness verification against retrieved evidence
-- FastAPI backend
-- React and TypeScript frontend
-- PDF ingestion with overlapping text chunks
+| Vanilla RAG | Multi-Hop Retrieval Agent |
+|---|---|
+| Usually one retrieval pass | Adaptive multi-hop retrieval |
+| Static top-k retrieval | Reflection decides whether more evidence is needed |
+| Query is used largely as-is | Query can be contextualized and decomposed |
+| Semantic retrieval only is common | Semantic + BM25 + reciprocal-rank fusion + cross-encoder reranking |
+| Fixed retrieval depth | Complexity-aware hop budget |
+| Generation is the final step | Generation is followed by groundedness verification |
+| Retrieval is mostly a black box | Research trail and execution metrics are returned |
+| Usually one source | Local PDFs, web search, or hybrid retrieval |
+
+The important distinction is **control flow**: retrieval is not a single preprocessing step; it is part of a feedback loop driven by an evidence-sufficiency decision.
 
 ## Architecture
 
-```text
-                         User Query
-                              |
-                              v
-                     +----------------+
-                     | Query Planner  |
-                     |                |
-                     | Complexity     |
-                     | Decomposition  |
-                     +-------+--------+
-                             |
-                             v
-                     +----------------+
-                     | Research State |
-                     +-------+--------+
-                             |
-                             v
-                  +------------------------+
-                  | Parallel Retrieval     |
-                  |        ChromaDB        |
-                  +-----------+------------+
-                              |
-                              v
-                     +----------------+
-                     |   Reflection   |
-                     |                |
-                     | Enough evidence|
-                     |      ?         |
-                     +-------+--------+
-                             |
-                   +---------+---------+
-                   |                   |
-                  Yes                  No
-                   |                   |
-                   v                   v
-              Synthesis          Generate Query
-                   |                   |
-                   |                   v
-                   |              Retrieve Again
-                   |                   |
-                   |              Reflection
-                   |                   |
-                   +---------+---------+
-                             |
-                             v
-                  Groundedness Check
-                             |
-                             v
-                       Final Answer
+### End-to-end architecture
+
+```mermaid
+flowchart TD
+    A[User Query + Conversation History] --> B[Query Contextualization]
+    B --> C[LLM Research Planner]
+    C --> D{Complexity + Source Routing}
+
+    D -->|Simple| E[Direct Retrieval]
+    D -->|Complex| F[Decompose into 2–4 Tasks]
+
+    F --> G[Parallel Task Retrieval]
+    E --> H[Evidence Pool]
+    G --> H
+
+    H --> I[Reflection Agent]
+    I --> J{Evidence Sufficient?}
+
+    J -->|No| K[Identify Missing Information]
+    K --> L[Generate Next Query + Source]
+    L --> M[Next Retrieval Hop]
+    M --> H
+
+    J -->|Yes| N[Answer Synthesis]
+    N --> O[Groundedness Verification]
+    O --> P[Cited Answer + Research Trail + Metrics]
 ```
 
-## How It Works
+### Local retrieval pipeline
 
-### 1. Document Ingestion
-
-Uploaded PDFs are processed by extracting their text, splitting it into overlapping chunks, generating embeddings, and storing the resulting vectors in ChromaDB.
-
-### 2. Query Planning
-
-The planner analyzes the user's question and produces a structured research plan containing the query complexity, research goal, and sub-questions.
-
-Simple questions can bypass decomposition and use direct retrieval. Complex questions are divided into independent research tasks.
-
-### 3. Initial Retrieval
-
-For complex queries, independent sub-questions are retrieved concurrently. Retrieved chunks are accumulated in the research state and deduplicated.
-
-### 4. Reflection
-
-The reflection model evaluates the evidence collected so far and returns a structured decision containing:
-
-- Whether the evidence is sufficient
-- Reasoning for the decision
-- Missing information
-- Confidence
-- A next query when additional evidence is required
-
-### 5. Multi-Hop Retrieval
-
-If the evidence is insufficient, the agent generates a new query based on the identified information gap and performs another retrieval hop.
-
-Execution is bounded by a maximum hop count and previously visited queries are tracked to prevent unnecessary repetition.
-
-### 6. Synthesis
-
-Once sufficient evidence has been collected, the synthesis model generates the final answer using the research goal, original question, and accumulated evidence.
-
-### 7. Groundedness Verification
-
-The generated answer is evaluated against the retrieved evidence to identify unsupported claims and estimate how well the answer is grounded in the available context.
-
-## Why Multi-Hop Retrieval
-
-A single retrieval step can fail when the information required to answer a question is distributed across multiple documents or concepts.
-
-Instead of increasing the retrieval size indiscriminately, this system uses an adaptive loop:
-
-```text
-Retrieve
-   |
-Reflect
-   |
-   +-- Sufficient --> Synthesize
-   |
-   +-- Insufficient --> Identify gap
-                              |
-                              v
-                         New query
-                              |
-                              v
-                           Retrieve
+```mermaid
+flowchart LR
+    A[Query] --> B[Chroma Semantic Search]
+    A --> C[BM25 Keyword Search]
+    B --> D[Reciprocal Rank Fusion]
+    C --> D
+    D --> E[Cross-Encoder Reranking]
+    E --> F[Top Evidence]
 ```
 
-This allows retrieval depth to depend on the information actually required by the question.
+### Document ingestion
 
-## Technology Stack
-
-### Backend
-
-- Python
-- FastAPI
-- Pydantic
-- ChromaDB
-- Sentence Transformers
-- PyPDF
-- asyncio
-- Tenacity
-
-### LLM
-
-- Groq API
-- openai/gpt-oss-120b
-- qwen/qwen3.6-27b
-
-### Frontend
-
-- React
-- TypeScript
-- Vite
-- React Markdown
-
-## Project Structure
-
-```text
-Multi-Hop-Retrieval-Agent/
-├── app_data/
-│   ├── main.py
-│   ├── agentic_loop.py
-│   ├── decomposition.py
-│   ├── reflection.py
-│   ├── retrieval.py
-│   ├── ingestion.py
-│   ├── synthesis.py
-│   ├── models.py
-│   ├── prompts.py
-│   └── ...
-├── frontend/
-│   └── src/
-├── data/
-├── requirements.txt
-├── .gitignore
-├── LICENSE
-└── README.md
+```mermaid
+flowchart LR
+    A[PDF Upload] --> B[Text Extraction]
+    B --> C[Overlapping Chunks]
+    C --> D[Sentence-Transformer Embeddings]
+    D --> E[(ChromaDB)]
+    C --> F[(BM25 Index Cache)]
 ```
+
+## Core Features
+
+- **LLM research planning** — classifies query complexity and routes work to local documents, the web, or hybrid retrieval.
+- **Query contextualization** — resolves conversational follow-ups into standalone research queries.
+- **Multi-hop reasoning loop** — reflection identifies missing information and generates the next retrieval query.
+- **Hybrid local retrieval** — semantic ChromaDB search + BM25 + Reciprocal Rank Fusion + cross-encoder reranking.
+- **Web research** — optional Tavily-powered external retrieval with basic/advanced search depth.
+- **Evidence management** — deduplication, citation IDs, document/page metadata, and source tracking.
+- **Grounded synthesis** — answers are generated from retrieved evidence with inline `[E1]`, `[E2]` citations.
+- **Groundedness check** — a separate model evaluates unsupported claims after synthesis.
+- **Bounded execution** — visited-query tracking and maximum hop limits prevent runaway research loops.
+- **Observability** — research trail, confidence, retrieval counts, web-search counts, and LLM call counts are exposed through the API and UI.
+- **Conversation-aware UI** — React frontend with PDF management, research modes, citations, evidence inspection, and research-trail visualization.
+- **Structured validation** — Pydantic models validate API input and model-generated research decisions.
+- **Resilience** — retries with exponential backoff and model fallback for rate/capacity failures.
+
+## Research Modes
+
+The UI exposes two optional controls in addition to the planner's normal routing:
+
+- **Web Search** — enables local + external retrieval and web-source evidence.
+- **Deep Research** — increases the research depth to up to **5 hops** and uses advanced search depth. When combined with Web Search, the deeper loop can use both local and web evidence.
+
+With neither enabled, the planner chooses the appropriate retrieval source and complex queries can still perform multi-hop local research.
 
 ## Local Setup
 
-### Backend
+### Prerequisites
+
+- Python 3.11+
+- Node.js 18+
+- A [Groq](https://console.groq.com/) API key
+- A [Tavily](https://tavily.com/) API key if using web search
+
+### 1. Clone and create the backend environment
 
 ```bash
 git clone https://github.com/AdarshBobade/Multi-Hop-Retrieval-Agent.git
@@ -210,13 +149,15 @@ cd Multi-Hop-Retrieval-Agent
 python -m venv .venv
 ```
 
-Windows:
+Activate it:
 
-```bash
+**Windows**
+
+```powershell
 .venv\Scripts\activate
 ```
 
-macOS/Linux:
+**macOS / Linux**
 
 ```bash
 source .venv/bin/activate
@@ -228,23 +169,28 @@ Install dependencies:
 pip install -r requirements.txt
 ```
 
-Create a `.env` file:
+### 2. Configure environment variables
+
+Create `.env` in the project root:
 
 ```env
 GROQ_API_KEY=your_groq_api_key
+TAVILY_API_KEY=your_tavily_api_key
 ```
 
-Start the backend:
+`TAVILY_API_KEY` is only required for web-search functionality.
+
+### 3. Start the backend
 
 ```bash
 uvicorn app_data.main:app --reload --port 8000
 ```
 
-API documentation:
+FastAPI's interactive API docs are available at `http://localhost:8000/docs`.
 
-`http://localhost:8000/docs`
+### 4. Start the frontend
 
-### Frontend
+In a second terminal:
 
 ```bash
 cd frontend
@@ -252,74 +198,52 @@ npm install
 npm run dev
 ```
 
-## Example
+Open the Vite URL shown in the terminal, normally `http://localhost:5173`.
 
-A complex question can be processed as:
+### Typical usage
+
+1. Upload one or more PDFs.
+2. Ask a research question.
+3. Optionally enable **Web Search** or **Deep Research**.
+4. Inspect the synthesized answer, citations, research trail, groundedness score, and query statistics.
+
+## Project Structure
 
 ```text
-User Question
-      |
-      v
-Query Decomposition
-      |
-      +---- Sub-question 1
-      +---- Sub-question 2
-      +---- Sub-question 3
-                    |
-                    v
-             Parallel Retrieval
-                    |
-                    v
-                Reflection
-                    |
-          +---------+---------+
-          |                   |
-       Sufficient        Insufficient
-          |                   |
-          v                   v
-      Synthesis          New Query
-                              |
-                              v
-                         Next Hop
-                              |
-                              v
-                         Reflection
-                              |
-                              v
-                         Synthesis
+Multi-Hop-Retrieval-Agent/
+├── app_data/
+│   ├── main.py              # FastAPI endpoints
+│   ├── agentic_loop.py      # Multi-hop orchestration
+│   ├── decomposition.py     # Research planning
+│   ├── contextualize.py     # Conversation → standalone query
+│   ├── retrieval.py         # Semantic/BM25/hybrid retrieval
+│   ├── reranking.py        # Cross-encoder reranking
+│   ├── reflection.py       # Evidence sufficiency decisions
+│   ├── synthesis.py        # Answer + groundedness verification
+│   ├── ingestion.py         # PDF ingestion and document management
+│   ├── web_search.py        # Tavily integration
+│   ├── models.py            # Pydantic schemas
+│   ├── evidence_format.py   # Evidence → LLM context formatting
+│   ├── config.py            # API clients and fallback logic
+│   └── prompts.py           # Agent prompts
+├── frontend/                # React + TypeScript UI
+├── requirements.txt
+├── .gitignore
+└── LICENSE
 ```
 
-The API response also exposes the research trail and execution metadata, allowing the retrieval process to be inspected rather than treated as a black box.
+Runtime data such as uploaded PDFs, ChromaDB, logs, virtual environments, and `.env` files are intentionally excluded through `.gitignore`.
 
-## Engineering Considerations
+## Engineering Notes
 
-The system uses several controls around probabilistic LLM behavior:
+The system deliberately separates **probabilistic decisions** from **deterministic execution**:
 
-- Pydantic validation for structured outputs
-- Retry with exponential backoff
-- Maximum hop limits
-- Visited-query tracking
-- Explicit research state
-- Retrieval and LLM call counters
-- Exception handling and logging
-- Groundedness verification
-
-These controls separate model-generated decisions from deterministic application logic and keep the agent's execution bounded and observable.
-
-## Roadmap
-
-- Hybrid semantic and keyword retrieval
-- Similarity-based chunk deduplication
-- Cross-encoder reranking
-- Improved query similarity detection
-- No-new-evidence termination
-- Page-level citations
-- Retrieval and LLM latency metrics
-- Token and cost tracking
-- Stage 1 versus multi-hop retrieval benchmarking
-- Web search integration
-- Streaming research-trail visualization
+- LLMs decide complexity, routing, missing information, and synthesis.
+- Pydantic validates structured model outputs before they enter the control flow.
+- Python controls hop limits, duplicate prevention, evidence accumulation, and API behavior.
+- Retrieval is observable through per-hop research records and execution counters.
+- Groundedness is checked independently after answer generation rather than assuming a cited answer is automatically correct.
 
 ## License
 
-MIT License.
+MIT License. See [LICENSE](LICENSE).
