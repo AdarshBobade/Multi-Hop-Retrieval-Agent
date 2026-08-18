@@ -4,7 +4,7 @@ import logging
 
 from dotenv import find_dotenv, load_dotenv
 
-# Load .env file from app_data or project root directory
+# Load .env from app_data, project root, or the current working directory.
 env_app_data = Path(__file__).resolve().parent / ".env"
 env_root = Path(__file__).resolve().parent.parent / ".env"
 
@@ -16,31 +16,28 @@ else:
     load_dotenv(find_dotenv(usecwd=True))
 
 groq_api = os.getenv("GROQ_API_KEY")
-hf_token = os.getenv("HF_TOKEN")
 tavily_api = os.getenv("TAVILY_API_KEY")
-gemini_api = os.getenv("GEMINI_API_KEY")
 
 logger = logging.getLogger(__name__)
 
 from groq import APIStatusError, Groq, RateLimitError
 
-
 client = Groq(api_key=groq_api)
 
 
 def llm_with_fallback(
-                        messages,
-                        primary_model,
-                        fallback_model=None,
-                        reasoning_effort=None,
-                        max_tokens=1200,
-                        fallback_max_tokens=None,
-                    ):
+    messages,
+    primary_model,
+    fallback_model=None,
+    reasoning_effort=None,
+    max_tokens=1200,
+    fallback_max_tokens=None,
+):
     try:
         kwargs = {
             "model": primary_model,
             "messages": messages,
-            "max_tokens": max_tokens
+            "max_tokens": max_tokens,
         }
 
         if reasoning_effort:
