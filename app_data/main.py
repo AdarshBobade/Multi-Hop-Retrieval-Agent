@@ -7,11 +7,18 @@ from fastapi.middleware.cors import CORSMiddleware
 from app_data.contextualize import contextualize_query
 from app_data.agentic_loop import run_agent_loop
 from app_data.decomposition import planner
-from app_data.ingestion import ingest_upload , list_documents ,delete_document
+from app_data.ingestion import ingest_upload, list_documents, delete_document, reset_session_database
 from app_data.models import Question
-from app_data.synthesis import synthesize_answer , check_groundedness
+from app_data.synthesis import synthesize_answer, check_groundedness
 
 app = FastAPI()
+
+
+@app.on_event("startup")
+async def startup_reset_database():
+    """Start every backend session with an empty document index."""
+    reset_session_database()
+
 
 app.add_middleware(
     CORSMiddleware,
@@ -58,7 +65,7 @@ async def ask(que: Question):
             deep_research=que.deep_research,
         )
        
-        response = synthesize_answer(state , standalone_query)
+        response = synthesize_answer(state, standalone_query)
         answer_text = response.choices[0].message.content
 
         groundedness = check_groundedness(state, standalone_query, answer_text)
@@ -83,7 +90,7 @@ async def ask(que: Question):
             "answer": answer_text,
             "trail": state.research_trail,
             "confidence": state.confidence,
-            "citations" : citations,
+            "citations": citations,
             "groundedness": groundedness.model_dump(),
             "retrieval_calls": state.retrieval_calls,
             "web_search_calls": state.web_search_calls,
