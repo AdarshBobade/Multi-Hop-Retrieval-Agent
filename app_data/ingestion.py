@@ -28,23 +28,18 @@ def reset_session_database() -> None:
 
     This is called once when the FastAPI application starts, not on every upload.
     """
-    global collection
 
-    try:
-        client.delete_collection("docs")
-    except Exception:
-        # The collection may not exist on the first run.
-        pass
+    # Clear documents from the EXISTING collection.
+    existing_ids = collection.get()["ids"]
 
-    collection = client.get_or_create_collection(
-        "docs",
-        embedding_function=embed_fn,
-    )
+    if existing_ids:
+        collection.delete(ids=existing_ids)
 
     from app_data.retrieval import invalidate_bm25_cache
     invalidate_bm25_cache()
 
     upload_root = UPLOAD_DIR.resolve()
+
     for upload_file in upload_root.iterdir():
         if upload_file.is_file():
             try:
