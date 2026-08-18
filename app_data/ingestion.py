@@ -6,6 +6,13 @@ import chromadb
 from chromadb.utils.embedding_functions import SentenceTransformerEmbeddingFunction
 from pypdf import PdfReader
 
+# File config
+UPLOAD_DIR = Path("data/uploads")
+UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+
+ALLOWED_EXTENSIONS = {".pdf"}
+MAX_UPLOAD_BYTES = 25 * 1024 * 1024  # 25 MB
+
 # Chroma
 client = chromadb.PersistentClient(path="./chroma_db")
 embed_fn = SentenceTransformerEmbeddingFunction(
@@ -17,17 +24,16 @@ collection = client.get_or_create_collection("docs", embedding_function=embed_fn
 
 def reset_session_database() -> None:
     """
-    Clear all indexed documents for a fresh application session.
+    Clear all indexed documents and uploaded PDFs for a fresh application session.
 
-    This keeps the same ChromaDB collection name while removing every
-    previously persisted chunk from disk-backed storage.
+    This is called once when the FastAPI application starts, not on every upload.
     """
     global collection
 
     try:
         client.delete_collection("docs")
     except Exception:
-        # Collection may not exist on the first run.
+        # The collection may not exist on the first run.
         pass
 
     collection = client.get_or_create_collection(
@@ -35,28 +41,16 @@ def reset_session_database() -> None:
         embedding_function=embed_fn,
     )
 
-    # Rebuild the BM25 cache from an empty collection.
     from app_data.retrieval import invalidate_bm25_cache
     invalidate_bm25_cache()
 
-    # Uploaded PDFs are also session-scoped. Remove only files inside the
-    # configured upload directory.
     upload_root = UPLOAD_DIR.resolve()
-    if upload_root.exists():
-        for upload_file in upload_root.iterdir():
-            if upload_file.is_file():
-                try:
-                    upload_file.unlink()
-                except OSError:
-                    pass
-
-
-# File config
-UPLOAD_DIR = Path("data/uploads")
-UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
-
-ALLOWED_EXTENSIONS = {".pdf"}
-MAX_UPLOAD_BYTES = 25 * 1024 * 1024  # 25 MB
+    for upload_file in upload_root.iterdir():
+        if upload_file.is_file():
+            try:
+                upload_file.unlink()
+            except OSError:
+                pass
 
 
 # Chunking
