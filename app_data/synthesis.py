@@ -87,7 +87,8 @@ def check_groundedness(state, question:str, answer_text: str) -> GroundednessChe
 
     response = llm_with_fallback(
         primary_model="openai/gpt-oss-20b",
-        fallback_model="openai/gpt-oss-20b",
+        fallback_model="qwen/qwen3.6-27b",
+        reasoning_effort="low",
         max_tokens=500,
         fallback_max_tokens=350,
         messages=[
@@ -137,7 +138,7 @@ def synthesize_answer(state , query:str):
                                         {"role": "user", "content": prompt}
                                     ],
                                     primary_model="openai/gpt-oss-120b",
-                                    fallback_model="openai/gpt-oss-20b",
+                                    fallback_model="qwen/qwen3.6-27b",
                                     reasoning_effort="medium",
                                     max_tokens=1800,
                                     fallback_max_tokens=1200,

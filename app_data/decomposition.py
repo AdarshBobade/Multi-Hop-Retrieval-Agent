@@ -30,7 +30,7 @@ def planner(query:str) -> ResearchPlan:
     user_prompt = PLANNER_USER_PROMPT.format(query=query)
     response = llm_with_fallback(
                     primary_model="openai/gpt-oss-20b",
-                    fallback_model="openai/gpt-oss-20b",
+                    fallback_model="qwen/qwen3.6-27b",
                     max_tokens=800,
                     fallback_max_tokens=600,
                     messages=[

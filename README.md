@@ -166,6 +166,7 @@ This allows retrieval depth to depend on the information actually required by th
 
 - Groq API
 - openai/gpt-oss-120b
+- qwen/qwen3.6-27b
 
 ### Frontend
 

@@ -69,7 +69,7 @@ def reflect(state : ResearchState) -> HopDecision:
 
             response = llm_with_fallback(
                         primary_model="openai/gpt-oss-20b",
-                        fallback_model="openai/gpt-oss-20b",
+                        fallback_model="qwen/qwen3.6-27b",
                         max_tokens=500,
                         fallback_max_tokens=350,
                         messages=[  {"role": "system", "content": REFLECTION_SYSTEM_PROMPT},

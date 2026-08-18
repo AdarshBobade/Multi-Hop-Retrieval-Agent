@@ -28,7 +28,7 @@ def contextualize_query(query:str , history:list[Conversation]):
 
     response = llm_with_fallback(
         primary_model="openai/gpt-oss-20b",
-        fallback_model="openai/gpt-oss-20b",
+        fallback_model="qwen/qwen3.6-27b",
         max_tokens=350,
         fallback_max_tokens=250,
         messages=[
