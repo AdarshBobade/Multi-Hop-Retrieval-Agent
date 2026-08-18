@@ -1,5 +1,6 @@
 import asyncio
 import logging
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
@@ -11,13 +12,15 @@ from app_data.ingestion import ingest_upload, list_documents, delete_document, r
 from app_data.models import Question
 from app_data.synthesis import synthesize_answer, check_groundedness
 
-app = FastAPI()
 
-
-@app.on_event("startup")
-async def startup_reset_database():
+@asynccontextmanager
+async def lifespan(app: FastAPI):
     """Start every backend session with an empty document index."""
     reset_session_database()
+    yield
+
+
+app = FastAPI(lifespan=lifespan)
 
 
 app.add_middleware(
@@ -39,9 +42,11 @@ app.add_middleware(
 
 logger = logging.getLogger(__name__)
 
+
 @app.get("/documents")
 def get_documents():
     return {"documents": list_documents()}
+
 
 @app.delete("/documents/{doc_id}")
 def remove_document(doc_id: str):
@@ -54,9 +59,8 @@ def remove_document(doc_id: str):
 @app.post("/ask")
 async def ask(que: Question):
     try:
-
         standalone_query = contextualize_query(query=que.query, history=que.history)
-        research_plan = planner(standalone_query)  # Returns an object of the class ResearchPlan
+        research_plan = planner(standalone_query)
 
         state = await run_agent_loop(
             research_plan,
@@ -64,27 +68,27 @@ async def ask(que: Question):
             web_search=que.web_search,
             deep_research=que.deep_research,
         )
-       
+
         response = synthesize_answer(state, standalone_query)
         answer_text = response.choices[0].message.content
 
         groundedness = check_groundedness(state, standalone_query, answer_text)
 
         citations = [
-                        {
-                            "id": evidence.citation_id,
-                            "source_type": evidence.source_type,
-                            "source": evidence.source,
-                            "title": evidence.title,
-                            "url": evidence.url,
-                            "page": evidence.page,
-                            "doc_id": evidence.doc_id,
-                            "chunk_id": evidence.chunk_id,
-                            "published_date": evidence.published_date,
-                            "content": evidence.content,
-                        }
-                        for evidence in state.evidence
-                    ]
+            {
+                "id": evidence.citation_id,
+                "source_type": evidence.source_type,
+                "source": evidence.source,
+                "title": evidence.title,
+                "url": evidence.url,
+                "page": evidence.page,
+                "doc_id": evidence.doc_id,
+                "chunk_id": evidence.chunk_id,
+                "published_date": evidence.published_date,
+                "content": evidence.content,
+            }
+            for evidence in state.evidence
+        ]
 
         return {
             "answer": answer_text,
