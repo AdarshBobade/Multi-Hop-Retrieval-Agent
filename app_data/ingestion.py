@@ -14,6 +14,43 @@ embed_fn = SentenceTransformerEmbeddingFunction(
 
 collection = client.get_or_create_collection("docs", embedding_function=embed_fn)
 
+
+def reset_session_database() -> None:
+    """
+    Clear all indexed documents for a fresh application session.
+
+    This keeps the same ChromaDB collection name while removing every
+    previously persisted chunk from disk-backed storage.
+    """
+    global collection
+
+    try:
+        client.delete_collection("docs")
+    except Exception:
+        # Collection may not exist on the first run.
+        pass
+
+    collection = client.get_or_create_collection(
+        "docs",
+        embedding_function=embed_fn,
+    )
+
+    # Rebuild the BM25 cache from an empty collection.
+    from app_data.retrieval import invalidate_bm25_cache
+    invalidate_bm25_cache()
+
+    # Uploaded PDFs are also session-scoped. Remove only files inside the
+    # configured upload directory.
+    upload_root = UPLOAD_DIR.resolve()
+    if upload_root.exists():
+        for upload_file in upload_root.iterdir():
+            if upload_file.is_file():
+                try:
+                    upload_file.unlink()
+                except OSError:
+                    pass
+
+
 # File config
 UPLOAD_DIR = Path("data/uploads")
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
@@ -31,7 +68,7 @@ def chunk_text(text, chunk_size=300):
         for i in range(0, len(words), chunk_size - overlap)
     ]
 
-# File hash 
+# File hash
 def calculate_file_hash(content: bytes) -> str:
     """
     SHA256 hash used to detect duplicate uploads.
@@ -43,7 +80,7 @@ def calculate_file_hash(content: bytes) -> str:
 def ingest_pdf(path: str | Path,
                file_hash: str | None = None,
                original_filename: str | None = None) -> dict:
-    
+
     path = Path(path)
     reader = PdfReader(str(path))
 
@@ -187,8 +224,6 @@ def list_documents() -> list[dict]:
 
 
 
-
-
 def ingest_upload(filename: str, content: bytes) -> dict:
     file_hash = calculate_file_hash(content)
 
@@ -240,7 +275,7 @@ def ingest_upload(filename: str, content: bytes) -> dict:
     result = ingest_pdf(path=path,
                         file_hash=file_hash,
                         original_filename=filename)
-    
+
     result["path"] = str(path)
     result["already_exists"] = False
 
