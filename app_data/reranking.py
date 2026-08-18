@@ -1,4 +1,3 @@
-from FlagEmbedding import FlagReranker
 from sentence_transformers import CrossEncoder
 from app_data.models import Evidence
 
