@@ -18,6 +18,7 @@ else:
 groq_api = os.getenv("GROQ_API_KEY")
 hf_token = os.getenv("HF_TOKEN")
 tavily_api = os.getenv("TAVILY_API_KEY")
+gemini_api = os.getenv("GEMINI_API_KEY")
 
 logger = logging.getLogger(__name__)
 

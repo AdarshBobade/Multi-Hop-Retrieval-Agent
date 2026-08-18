@@ -16,12 +16,10 @@ def count_calls(task_source: str) -> tuple[int, int]:
 
 async def run_agent_loop(research_plan, original_query, web_search: bool = False, deep_research: bool = False):
 
-    # UI-selected modes take precedence over the planner's source choice.
-    # With no explicit mode selected, retain the existing planner-driven behavior.
     selected_source = None
     if web_search:
-        # Web search is additive: always retain uploaded-PDF context as well.
         selected_source = "hybrid"
+
     elif deep_research:
         selected_source = "local"
 
@@ -52,17 +50,17 @@ async def run_agent_loop(research_plan, original_query, web_search: bool = False
 
 
 
-    state = ResearchState(question = original_query,
-                                    plan = research_plan,
-                                    current_queries = [task.question for task in initial_tasks],
-                                    complexity=complexity,
-                                    visited_queries = set(),
-                                    hop_cnt = 0 ,
-                                    max_hops = 5 if deep_research else 3,
-                                    research_trail = [],
-                                    confidence = 0.0,
-                                    llm_calls  = 0,
-                                    retrieval_calls = 0)
+    state = ResearchState(  question = original_query,
+                            plan = research_plan,
+                            current_queries = [task.question for task in initial_tasks],
+                            complexity=complexity,
+                            visited_queries = set(),
+                            hop_cnt = 0 ,
+                            max_hops = 5 if deep_research else 3,
+                            research_trail = [],
+                            confidence = 0.0,
+                            llm_calls  = 0,
+                            retrieval_calls = 0)
 
 
 
