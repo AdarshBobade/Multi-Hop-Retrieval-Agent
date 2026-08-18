@@ -17,6 +17,7 @@ else:
 
 groq_api = os.getenv("GROQ_API_KEY")
 tavily_api = os.getenv("TAVILY_API_KEY")
+web_query_words = os.getenv("WEB_QUERY_STOPWORDS")
 
 logger = logging.getLogger(__name__)
 

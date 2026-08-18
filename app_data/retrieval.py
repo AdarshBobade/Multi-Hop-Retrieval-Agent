@@ -1,6 +1,7 @@
 from app_data.ingestion import collection
 from app_data.models import Evidence, ResearchTask
 from app_data.web_search import web_search
+from app_data.config import web_query_words
 from rank_bm25 import BM25Okapi
 from app_data.reranking import rerank
 import asyncio
@@ -10,14 +11,7 @@ import re
 
 logger = logging.getLogger(__name__)
 
-WEB_QUERY_STOPWORDS = {
-    "about", "after", "also", "been", "before", "being", "between",
-    "context", "could", "document", "documents", "from", "given", "have",
-    "into", "look", "more", "most", "other", "provided", "recent",
-    "research", "should", "studies", "study", "than", "that", "their",
-    "there", "these", "they", "this", "through", "using", "what", "when",
-    "where", "which", "while", "with", "would", "your",
-}
+WEB_QUERY_STOPWORDS = web_query_words
 
 bm25_cache = None
 
