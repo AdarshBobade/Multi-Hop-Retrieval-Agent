@@ -1,0 +1,76 @@
+diff --git a/README.md b/README.md
+index 24e0bc1..9d46109 100644
+--- a/README.md
++++ b/README.md
+@@ -1,4 +1,4 @@
+-# Multi-Hop Retrieval Agent
++# ResX
+ 
+ > An agentic RAG system that **plans, retrieves, reflects, verifies, and synthesizes** instead of assuming one retrieval pass is enough.
+ 
+@@ -40,7 +40,7 @@ Cited Answer + Research Trail
+ 
+ ## What Makes It Different From Vanilla RAG?
+ 
+-| Vanilla RAG | Multi-Hop Retrieval Agent |
++| Vanilla RAG | ResX |
+ |---|---|
+ | Usually one retrieval pass | Adaptive multi-hop retrieval |
+ | Static top-k retrieval | Reflection decides whether more evidence is needed |
+diff --git a/frontend/README.md b/frontend/README.md
+index a084a40..7584a92 100644
+--- a/frontend/README.md
++++ b/frontend/README.md
+@@ -1,6 +1,6 @@
+-# MultiHop frontend
++# ResX frontend
+ 
+-React + Vite + TypeScript UI for the Multi-Hop Retrieval Agent.
++React + Vite + TypeScript UI for ResX.
+ 
+ ## Develop
+ 
+diff --git a/frontend/index.html b/frontend/index.html
+index 7bc612d..89435ae 100644
+--- a/frontend/index.html
++++ b/frontend/index.html
+@@ -6,7 +6,7 @@
+     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+     <meta
+       name="description"
+-      content="MultiHop — decompose complex questions, retrieve evidence across hops, and synthesize cited answers."
++      content="ResX — decompose complex questions, retrieve evidence across hops, and synthesize cited answers."
+     />
+     <link rel="preconnect" href="https://fonts.googleapis.com" />
+     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+@@ -14,7 +14,7 @@
+       href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=Syne:wght@600;700;800&display=swap"
+       rel="stylesheet"
+     />
+-    <title>MultiHop</title>
++    <title>ResX</title>
+   </head>
+   <body>
+     <div id="root"></div>
+diff --git a/frontend/src/App.tsx b/frontend/src/App.tsx
+index ec713e4..688d4fb 100644
+--- a/frontend/src/App.tsx
++++ b/frontend/src/App.tsx
+@@ -308,7 +308,7 @@ function App() {
+       </div>
+ 
+       <header className="hero">
+-        <p className="brand">MultiHop</p>
++        <p className="brand">ResX</p>
+         <h1>Ask questions that need more than one leap.</h1>
+         <p className="lede">
+           Decompose complex queries, retrieve and verify evidence across hops,
+@@ -576,7 +576,7 @@ function App() {
+       )}
+ 
+       <footer className="footer">
+-        <p>Multi-Hop Retrieval Agent</p>
++        <p>ResX</p>
+       </footer>
+     </div>
+   )

@@ -1,6 +1,6 @@
-# MultiHop frontend
+# ResX frontend
 
-React + Vite + TypeScript UI for the Multi-Hop Retrieval Agent.
+React + Vite + TypeScript UI for ResX.
 
 ## Develop
 

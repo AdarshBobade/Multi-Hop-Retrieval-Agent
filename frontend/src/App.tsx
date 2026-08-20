@@ -308,7 +308,7 @@ function App() {
       </div>
 
       <header className="hero">
-        <p className="brand">MultiHop</p>
+        <p className="brand">ResX</p>
         <h1>Ask questions that need more than one leap.</h1>
         <p className="lede">
           Decompose complex queries, retrieve and verify evidence across hops,
@@ -576,7 +576,7 @@ function App() {
       )}
 
       <footer className="footer">
-        <p>Multi-Hop Retrieval Agent</p>
+        <p>ResX</p>
       </footer>
     </div>
   )

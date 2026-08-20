@@ -1,4 +1,4 @@
-# Multi-Hop Retrieval Agent
+# ResX
 
 > An agentic RAG system that **plans, retrieves, reflects, verifies, and synthesizes** instead of assuming one retrieval pass is enough.
 
@@ -40,7 +40,7 @@ Cited Answer + Research Trail
 
 ## What Makes It Different From Vanilla RAG?
 
-| Vanilla RAG | Multi-Hop Retrieval Agent |
+| Vanilla RAG | ResX |
 |---|---|
 | Usually one retrieval pass | Adaptive multi-hop retrieval |
 | Static top-k retrieval | Reflection decides whether more evidence is needed |
