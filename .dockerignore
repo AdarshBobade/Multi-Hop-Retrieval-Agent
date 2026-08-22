@@ -1,0 +1,17 @@
+# root .dockerignore
+.env
+.env.*
+__pycache__/
+*.pyc
+.pytest_cache/
+venv/
+.venv/
+chroma_db/
+data/uploads/
+.git/
+.gitignore
+frontend/
+*.log
+.vscode/
+.idea/
+.DS_Store

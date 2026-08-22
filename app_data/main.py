@@ -47,6 +47,9 @@ logger = logging.getLogger(__name__)
 def get_documents():
     return {"documents": list_documents()}
 
+@app.get("/health")
+def health():
+    return {"status": "ok"}
 
 @app.delete("/documents/{doc_id}")
 def remove_document(doc_id: str):

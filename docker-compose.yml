@@ -1,0 +1,33 @@
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: resx-backend
+    env_file:
+      - .env
+    ports:
+      - "8000:10000"
+    volumes:
+      - resx-uploads:/app/data/uploads
+      - resx-chroma:/app/chroma_db
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: resx-frontend
+    environment:
+      - BACKEND_URL=http://backend:10000
+    ports:
+      - "5176:10000"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  resx-uploads:
+    name: resx-uploads
+  resx-chroma:
+    name: resx-chroma

@@ -1,6 +1,7 @@
 #environments
 .env
 *.env
+.env.*
 
 #python_data
 __pycache__/
